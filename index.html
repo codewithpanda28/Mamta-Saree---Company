@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mamta Saree - Admin Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { maroon: '#600000', red: '#8B0000', gold: '#D4AF37', light: '#FFF8F0' }
+                    },
+                    fontFamily: { heading: ['Cinzel', 'serif'], body: ['Lato', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        .glass-card {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-gradient {
+            background: linear-gradient(180deg, #600000 0%, #400000 100%);
+        }
+
+        .nav-item.active {
+            background: rgba(212, 175, 55, 0.15);
+            border-right: 4px solid #D4AF37;
+            color: #D4AF37;
+        }
+
+        .loader-bar {
+            height: 4px;
+            width: 100%;
+            background: #e5e7eb;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .loader-bar::before {
+            content: '';
+            display: block;
+            position: absolute;
+            left: -200px;
+            width: 200px;
+            height: 4px;
+            background: linear-gradient(90deg, #600000, #D4AF37);
+            animation: loading 1.5s linear infinite;
+        }
+
+        @keyframes loading {
+            from {
+                left: -200px;
+            }
+
+            to {
+                left: 100%;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: auto;
+            animation: modalIn 0.3s;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        }
+
+        .btn-primary {
+            background: #600000;
+            color: #D4AF37;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #8B0000;
+            transform: scale(1.02);
+        }
+
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-danger {
+            background: #DC2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #B91C1C;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #600000;
+            box-shadow: 0 0 0 3px rgba(96, 0, 0, 0.1);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .activity-item {
+            border-left: 3px solid #D4AF37;
+            padding-left: 12px;
+            margin-left: 12px;
+            position: relative;
+        }
+
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: -7px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            background: #D4AF37;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen flex overflow-hidden text-gray-800">
+
+    <!-- LOGIN SCREEN -->
+    <div id="authScreen"
+        class="fixed inset-0 z-50 bg-brand-maroon flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-96 text-center border-t-8 border-brand-gold">
+            <div class="w-20 h-20 bg-brand-maroon rounded-full mx-auto mb-4 flex items-center justify-center">
+                <i class="fas fa-gem text-3xl text-brand-gold"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-brand-maroon mb-1 font-heading">Mamta Saree</h1>
+            <p class="text-gray-400 mb-6 text-xs uppercase tracking-widest">Admin Dashboard</p>
+
+            <div class="space-y-4">
+                <input type="password" id="passInput" placeholder="Enter Password"
+                    class="input-field text-center text-lg" onkeypress="if(event.key==='Enter') App.login()">
+                <button onclick="App.login()" class="btn-primary w-full">
+                    <i class="fas fa-lock mr-2"></i>SECURE LOGIN
+                </button>
+            </div>
+            <p id="loginMsg" class="text-red-500 text-xs mt-4 h-4"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATION -->
+    <div id="dashboardApp" class="flex w-full h-full hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="w-64 sidebar-gradient text-white flex flex-col shadow-2xl z-20 flex-shrink-0">
+            <div class="p-5 text-center border-b border-white/10">
+                <div
+                    class="w-14 h-14 bg-white rounded-full mx-auto mb-2 flex items-center justify-center text-brand-maroon text-xl border-2 border-brand-gold">
+                    <i class="fas fa-gem"></i>
+                </div>
+                <h2 class="text-xl font-heading font-bold text-brand-gold">Mamta Saree</h2>
+                <p class="text-[10px] text-gray-300 uppercase tracking-widest">Admin Panel</p>
+            </div>
+
+            <nav class="flex-1 py-4 space-y-1 overflow-y-auto" id="navMenu">
+                <button data-page="dashboard"
+                    class="nav-item active w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard
+                </button>
+                <button data-page="products"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-box-open w-5 text-center"></i> Products
+                </button>
+                <button data-page="orders"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-shopping-bag w-5 text-center"></i> Orders
+                </button>
+                <button data-page="payments"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-credit-card w-5 text-center"></i> Payments
+                </button>
+                <button data-page="customers"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-users w-5 text-center"></i> Customers
+                </button>
+                <button data-page="conversations"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-comments w-5 text-center"></i> Chats
+                </button>
+                <button
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide"
+                    data-page="reports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reports</span>
+                </button>
+                <button data-page="analytics"
+                    class="nav-item w-full text-left px-5 py-3 hover:bg-white/5 flex items-center gap-3 text-sm font-bold uppercase tracking-wide">
+                    <i class="fas fa-chart-line w-5 text-center"></i> Analytics
+                </button>
+            </nav>
+
+            <div class="p-4 bg-black/20 space-y-2">
+                <div id="syncStatus" class="text-center text-xs text-gray-300 py-1">
+                    <i class="fas fa-circle text-green-400 mr-1"></i> Connected
+                </div>
+                <button onclick="App.logout()"
+                    class="w-full text-center text-xs text-red-300 hover:text-white py-2 flex items-center justify-center gap-2 hover:bg-red-500/20 rounded">
+                    <i class="fas fa-sign-out-alt"></i> LOGOUT
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-1 flex flex-col min-w-0 bg-gray-100 relative">
+
+            <!-- TOP HEADER -->
+            <header class="bg-white h-14 shadow-sm flex items-center justify-between px-6 z-10 sticky top-0">
+                <div class="flex items-center gap-3">
+                    <h2 id="pageTitle" class="text-lg font-bold text-gray-800 font-heading">Dashboard</h2>
+                    <span id="pageSubtitle" class="text-xs text-gray-400"></span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="DataManager.refresh()" id="refreshBtn"
+                        class="bg-brand-light border border-brand-gold text-brand-maroon px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-gold hover:text-white transition-all">
+                        <i class="fas fa-sync-alt"></i> <span class="hidden sm:inline">Refresh</span>
+                    </button>
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs text-gray-400">Last updated</p>
+                        <p id="lastUpdate" class="text-xs font-bold text-gray-600">-</p>
+                    </div>
+                </div>
+
+                <div id="globalLoader" class="loader-bar hidden"></div>
+            </header>
+
+            <!-- DYNAMIC VIEW CONTAINER -->
+            <div id="mainView" class="flex-1 overflow-auto p-5">
+                <div class="text-center p-20 text-gray-400">Loading...</div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="bg-brand-maroon text-white p-4 flex justify-between items-center rounded-t-2xl">
+                <h3 id="productModalTitle" class="font-bold font-heading">Add Product</h3>
+                <button onclick="Modals.close('productModal')"
+                    class="text-white/70 hover:text-white text-xl">&times;</button>
+            </div>
+            <form id="productForm" class="p-5 space-y-4">
+                <input type="hidden" id="prod_serial" />
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Saree Name *</label>
+                        <input type="text" id="prod_name" class="input-field" required placeholder="Banarasi Silk">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Category</label>
+                        <select id="prod_category" class="input-field">
+                            <option value="Silk">Silk</option>
+                            <option value="Cotton">Cotton</option>
+                            <option value="Party Wear">Party Wear</option>
+                            <option value="Casual">Casual</option>
+                            <option value="Bridal">Bridal</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Price (₹) *</label>
+                        <input type="number" id="prod_price" class="input-field" required placeholder="4500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Stock Qty</label>
+                        <input type="number" id="prod_stock" class="input-field" value="10" placeholder="10">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Status</label>
+                        <select id="prod_status" class="input-field">
+                            <option value="Available">Available</option>
+                            <option value="Unavailable">Unavailable</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Color</label>
+                        <input type="text" id="prod_color" class="input-field" placeholder="Red, Blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">Fabric</label>
+                        <input type="text" id="prod_fabric" class="input-field" placeholder="Pure Silk">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Image URL</label>
+                    <input type="url" id="prod_image" class="input-field" placeholder="https://drive.google.com/...">
+                    <p class="text-xs text-gray-400 mt-1">Google Drive link या direct image URL</p>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="Modals.close('productModal')"
+                        class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-300">Cancel</button>
+                    <button type="submit" class="flex-1 btn-primary py-3"><i class="fas fa-save mr-2"></i>Save
+                        Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="bg-brand-maroon text-white p-4 flex justify-between items-center rounded-t-2xl">
+                <h3 class="font-bold font-heading">Order Details</h3>
+                <button onclick="Modals.close('orderModal')"
+                    class="text-white/70 hover:text-white text-xl">&times;</button>
+            </div>
+            <div id="orderDetails" class="p-5">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="bg-brand-maroon text-white p-4 flex justify-between items-center rounded-t-2xl">
+                <h3 class="font-bold font-heading">Verify Payment</h3>
+                <button onclick="Modals.close('paymentModal')"
+                    class="text-white/70 hover:text-white text-xl">&times;</button>
+            </div>
+            <div id="paymentDetails" class="p-5">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content max-w-sm">
+            <div class="p-6 text-center">
+                <i id="confirmIcon" class="fas fa-question-circle text-5xl text-brand-maroon mb-4"></i>
+                <h3 id="confirmTitle" class="font-bold text-lg mb-2">Are you sure?</h3>
+                <p id="confirmMsg" class="text-gray-500 text-sm mb-6">This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button onclick="Modals.close('confirmModal')"
+                        class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold">Cancel</button>
+                    <button id="confirmBtn" class="flex-1 btn-danger py-2 rounded-lg font-bold">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 transition-transform duration-300">
+        <div id="toastContent"
+            class="bg-brand-maroon text-white px-5 py-3 rounded-lg shadow-xl border-l-4 border-brand-gold flex items-center gap-3">
+            <i id="toastIcon" class="fas fa-info-circle text-brand-gold"></i>
+            <span id="toastMsg" class="font-bold text-sm">Notification</span>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // CONFIGURATION
+        // =====================================================
+        const CONFIG = {
+            // 🚀 Production URL (Netlify पर यही use होगा)
+            API_URL: 'https://n8n.srv1114630.hstgr.cloud/webhook/mamta-saree',
+            PASS: 'mamta2024',
+            VERSION: '2.0'
+        };
+
+        // =====================================================
+        // UTILITIES
+        // =====================================================
+        function safeStr(val) { return (val === null || val === undefined) ? '' : String(val); }
+        function safeNum(val) { return parseFloat(val) || 0; }
+        function formatPhone(phone) {
+            var str = safeStr(phone).replace(/[^0-9]/g, '');
+            if (str.length === 10) return '91' + str;
+            return str;
+        }
+        function formatDate(d) {
+            if (!d) return '-';
+            try {
+                var date = new Date(d);
+                if (isNaN(date.getTime())) return safeStr(d);
+                return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch (e) { return safeStr(d); }
+        }
+        function formatDateTime(d) {
+            if (!d) return '-';
+            try {
+                var date = new Date(d);
+                if (isNaN(date.getTime())) return safeStr(d);
+                return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return safeStr(d); }
+        }
+        function formatCurrency(amt) { return '₹' + safeNum(amt).toLocaleString('en-IN'); }
+        function generateId(prefix) { return prefix + '-' + Date.now().toString(36).toUpperCase(); }
+        function todayDate() { return new Date().toISOString().split('T')[0]; }
+
+        // =====================================================
+        // STORE
+        // =====================================================
+        const Store = {
+            data: { products: [], orders: [], customers: [], payments: [], conversations: [] },
+            save: function () {
+                localStorage.setItem('mamta_v2', JSON.stringify(this.data));
+                localStorage.setItem('mamta_updated', new Date().toISOString());
+            },
+            load: function () {
+                try {
+                    var saved = localStorage.getItem('mamta_v2');
+                    if (saved) { this.data = JSON.parse(saved); return true; }
+                } catch (e) { }
+                return false;
+            },
+            getLastUpdate: function () {
+                var t = localStorage.getItem('mamta_updated');
+                return t ? formatDateTime(t) : '-';
+            }
+        };
+
+        // =====================================================
+        // DATA MANAGER
+        // =====================================================
+        const DataManager = {
+            convertDriveUrl: function (url) {
+                if (!url || typeof url !== 'string') return '';
+                if (url.includes('drive.google.com')) {
+                    var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                    if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400';
+                }
+                return url;
+            },
+            extract: function (res) {
+                if (!res) return [];
+                if (res.data && Array.isArray(res.data)) return res.data;
+                if (Array.isArray(res)) return res.map(function (i) { return i.json || i; });
+                return [];
+            },
+            get: function (obj, keys, def) {
+                if (!obj) return def || '';
+                for (var i = 0; i < keys.length; i++) {
+                    if (obj[keys[i]] !== undefined && obj[keys[i]] !== null && obj[keys[i]] !== '') return obj[keys[i]];
+                }
+                return def || '';
+            },
+            fetch: async function (endpoint) {
+                try {
+                    var res = await fetch(CONFIG.API_URL + '/' + endpoint);
+                    if (res.ok) return this.extract(await res.json());
+                } catch (e) { console.error(endpoint + ' error:', e); }
+                return [];
+            },
+            post: async function (endpoint, data) {
+                try {
+                    UI.showLoader();
+                    var res = await fetch(CONFIG.API_URL + '/' + endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    var json = await res.json();
+                    UI.hideLoader();
+                    return json;
+                } catch (e) {
+                    UI.hideLoader();
+                    console.error('POST error:', e);
+                    return { success: false, error: e.message };
+                }
+            },
+            refresh: async function () {
+                UI.showLoader();
+                UI.toast('🔄 Syncing data...', 'info');
+
+                try {
+                    var results = await Promise.all([
+                        this.fetch('products'),
+                        this.fetch('orders'),
+                        this.fetch('customers'),
+                        this.fetch('payments'),
+                        this.fetch('conversations')
+                    ]);
+
+                    Store.data.products = results[0];
+                    Store.data.orders = results[1];
+                    Store.data.customers = results[2];
+                    Store.data.payments = results[3];
+                    Store.data.conversations = results[4];
+
+                    Store.save();
+                    document.getElementById('lastUpdate').innerText = Store.getLastUpdate();
+                    UI.renderCurrent();
+                    UI.toast('✅ Data synced successfully!', 'success');
+                } catch (e) {
+                    UI.toast('❌ Sync failed!', 'error');
+                }
+                UI.hideLoader();
+            }
+        };
+
+        // =====================================================
+        // MODALS
+        // =====================================================
+        const Modals = {
+            open: function (id) { document.getElementById(id).classList.add('show'); },
+            close: function (id) { document.getElementById(id).classList.remove('show'); },
+
+            confirm: function (title, msg, callback, icon) {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMsg').innerText = msg;
+                document.getElementById('confirmIcon').className = 'fas ' + (icon || 'fa-question-circle') + ' text-5xl text-brand-maroon mb-4';
+                document.getElementById('confirmBtn').onclick = function () {
+                    Modals.close('confirmModal');
+                    callback();
+                };
+                this.open('confirmModal');
+            },
+
+            openProductForm: function (product) {
+                document.getElementById('productModalTitle').innerText = product ? 'Edit Product' : 'Add New Product';
+                document.getElementById('prod_serial').value = product ? DataManager.get(product, ['Serial_No', 'serial_no']) : '';
+                document.getElementById('prod_name').value = product ? DataManager.get(product, ['Saree_Name', 'Product_Name', 'Name']) : '';
+                document.getElementById('prod_category').value = product ? DataManager.get(product, ['Category']) : 'Silk';
+                document.getElementById('prod_price').value = product ? DataManager.get(product, ['Price']) : '';
+                document.getElementById('prod_stock').value = product ? DataManager.get(product, ['Stock_Qty'], '10') : '10';
+                document.getElementById('prod_status').value = product ? DataManager.get(product, ['Stock_Status'], 'Available') : 'Available';
+                document.getElementById('prod_color').value = product ? DataManager.get(product, ['Color']) : '';
+                document.getElementById('prod_fabric').value = product ? DataManager.get(product, ['Fabric']) : '';
+                document.getElementById('prod_image').value = product ? DataManager.get(product, ['Image_URL']) : '';
+                this.open('productModal');
+            },
+
+            openOrder: function (order) {
+                var o = order;
+                var phone = formatPhone(DataManager.get(o, ['Phone']));
+                var html = '';
+                html += '<div class="grid grid-cols-2 gap-4 mb-4">';
+                html += '<div><p class="text-xs text-gray-400">Order ID</p><p class="font-bold">' + DataManager.get(o, ['Order_ID']) + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Date</p><p class="font-bold">' + formatDate(DataManager.get(o, ['Order_Date'])) + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Customer</p><p class="font-bold">' + DataManager.get(o, ['Customer_Name']) + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Phone</p><p class="font-bold">' + DataManager.get(o, ['Phone']) + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Product</p><p class="font-bold">' + DataManager.get(o, ['Product_Name']) + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Amount</p><p class="font-bold text-brand-maroon text-xl">' + formatCurrency(DataManager.get(o, ['Amount'])) + '</p></div>';
+                html += '</div>';
+
+                html += '<div class="bg-gray-50 p-3 rounded-lg mb-4">';
+                html += '<p class="text-xs text-gray-400 mb-1">Delivery Address</p>';
+                html += '<p class="font-bold">' + DataManager.get(o, ['Delivery_Address'], '-') + '</p>';
+                html += '<p class="text-sm text-gray-600">' + DataManager.get(o, ['City']) + ', ' + DataManager.get(o, ['State']) + ' - ' + DataManager.get(o, ['Pincode']) + '</p>';
+                html += '</div>';
+
+                // html += '<div class="mb-4">';
+                // html += '<label class="block text-xs font-bold text-gray-500 mb-2">Update Status</label>';
+                // html += '<select id="orderStatusSelect" class="input-field">';
+                // ['Pending', 'Confirmed', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(function (s) {
+                //     var sel = DataManager.get(o, ['Status']) === s ? 'selected' : '';
+                //     html += '<option value="' + s + '" ' + sel + '>' + s + '</option>';
+                // });
+                // html += '</select>';
+                // html += '</div>';
+
+                html += '<div class="mb-4">';
+                html += '<label class="block text-xs font-bold text-gray-500 mb-2">Tracking ID</label>';
+                html += '<input type="text" id="orderTrackingId" class="input-field" value="' + DataManager.get(o, ['Tracking_ID'], '') + '" placeholder="Enter tracking number">';
+                html += '</div>';
+
+                html += '<div class="mb-4">';
+                html += '<label class="block text-xs font-bold text-gray-500 mb-2">Notes</label>';
+                html += '<textarea id="orderNotes" class="input-field" rows="2" placeholder="Add notes...">' + DataManager.get(o, ['Notes'], '') + '</textarea>';
+                html += '</div>';
+
+                html += '<div class="flex gap-3">';
+                if (phone) {
+                    html += '<a href="https://wa.me/' + phone + '" target="_blank" class="flex-1 bg-green-500 text-white py-3 rounded-lg font-bold text-center"><i class="fab fa-whatsapp mr-2"></i>WhatsApp</a>';
+                }
+                html += '<button onclick="Actions.updateOrder(\'' + DataManager.get(o, ['Order_ID']) + '\')" class="flex-1 btn-primary py-3"><i class="fas fa-save mr-2"></i>Update Order</button>';
+                html += '</div>';
+
+                document.getElementById('orderDetails').innerHTML = html;
+                this.open('orderModal');
+            },
+
+            openPayment: function (payment) {
+                var p = payment;
+                var phone = DataManager.get(p, ['Phone', 'phone', 'Customer_Phone']);
+                var cleanPhone = formatPhone(phone);
+                var customerName = DataManager.get(p, ['Customer_Name', 'Name', 'customer_name']);
+                var paymentId = DataManager.get(p, ['Payment_ID', 'payment_id']);
+                var screenshot = DataManager.get(p, ['Screenshot_URL', 'Image_URL']);
+                var imgUrl = DataManager.convertDriveUrl(screenshot);
+
+                var html = '';
+                html += '<div class="grid grid-cols-2 gap-4 mb-4">';
+                html += '<div><p class="text-xs text-gray-400">Payment ID</p><p class="font-bold">' + paymentId + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Customer</p><p class="font-bold">' + customerName + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Phone</p><p class="font-bold">' + phone + '</p></div>';
+                html += '<div><p class="text-xs text-gray-400">Amount</p><p class="font-bold text-brand-maroon text-2xl">' + formatCurrency(DataManager.get(p, ['Amount_Expected', 'Amount'])) + '</p></div>';
+                html += '</div>';
+
+                if (imgUrl) {
+                    html += '<div class="mb-4">';
+                    html += '<p class="text-xs text-gray-400 mb-2">Payment Screenshot</p>';
+                    html += '<a href="' + screenshot + '" target="_blank"><img src="' + imgUrl + '" class="w-full rounded-lg border shadow-lg hover:opacity-90" onerror="this.src=\'https://via.placeholder.com/400x300/eee/999?text=Image+Error\'"></a>';
+                    html += '</div>';
+                }
+
+                var currentStatus = DataManager.get(p, ['Status'], 'Pending');
+                if (currentStatus.toLowerCase() === 'verified' || currentStatus.toLowerCase() === 'approved') {
+                    html += '<div class="bg-green-100 text-green-700 p-4 rounded-lg text-center font-bold mb-4">';
+                    html += '<i class="fas fa-check-circle mr-2"></i>Payment Verified';
+                    if (DataManager.get(p, ['Verified_By'])) html += '<br><span class="text-xs font-normal">by ' + DataManager.get(p, ['Verified_By']) + '</span>';
+                    html += '</div>';
+                } else if (currentStatus.toLowerCase() === 'rejected') {
+                    html += '<div class="bg-red-100 text-red-700 p-4 rounded-lg text-center font-bold mb-4">';
+                    html += '<i class="fas fa-times-circle mr-2"></i>Payment Rejected</div>';
+                } else {
+                    // 🔥 Updated buttons with phone and name parameters
+                    html += '<div class="flex gap-3">';
+                    html += '<button onclick="Actions.verifyPayment(\'' + paymentId + '\', \'Rejected\', \'' + cleanPhone + '\', \'' + customerName.replace(/'/g, "\\'") + '\')" class="flex-1 btn-danger py-3 rounded-lg font-bold"><i class="fas fa-times mr-2"></i>Reject</button>';
+                    html += '<button onclick="Actions.verifyPayment(\'' + paymentId + '\', \'Verified\', \'' + cleanPhone + '\', \'' + customerName.replace(/'/g, "\\'") + '\')" class="flex-1 btn-success py-3 rounded-lg font-bold"><i class="fas fa-check mr-2"></i>Verify</button>';
+                    html += '</div>';
+
+                    // WhatsApp Direct Link
+                    if (cleanPhone) {
+                        html += '<div class="mt-3">';
+                        html += '<a href="https://wa.me/' + cleanPhone + '" target="_blank" class="block w-full bg-green-500 text-white py-2 rounded-lg font-bold text-center"><i class="fab fa-whatsapp mr-2"></i>WhatsApp pe Contact Karo</a>';
+                        html += '</div>';
+                    }
+                }
+
+                document.getElementById('paymentDetails').innerHTML = html;
+                this.open('paymentModal');
+            }
+        };
+
+        // =====================================================
+        // ACTIONS (CRUD Operations)
+        // =====================================================
+        const Actions = {
+            // Add/Update Product
+            saveProduct: async function (e) {
+                e.preventDefault();
+                var serial = document.getElementById('prod_serial').value;
+                var isEdit = !!serial;
+
+                var data = {
+                    Serial_No: serial || generateId('S'),
+                    Saree_Name: document.getElementById('prod_name').value,
+                    Category: document.getElementById('prod_category').value,
+                    Price: document.getElementById('prod_price').value,
+                    Stock_Qty: document.getElementById('prod_stock').value,
+                    Stock_Status: document.getElementById('prod_status').value,
+                    Color: document.getElementById('prod_color').value,
+                    Fabric: document.getElementById('prod_fabric').value,
+                    Image_URL: document.getElementById('prod_image').value,
+                    Added_Date: isEdit ? undefined : todayDate()
+                };
+
+                var endpoint = isEdit ? 'products/update' : 'products/add';
+                var result = await DataManager.post(endpoint, data);
+
+                if (result.success) {
+                    UI.toast(isEdit ? '✅ Product updated!' : '✅ Product added!', 'success');
+                    Modals.close('productModal');
+                    DataManager.refresh();
+                } else {
+                    UI.toast('❌ Failed to save product', 'error');
+                }
+            },
+
+            // Delete Product
+            deleteProduct: function (serialNo) {
+                Modals.confirm('Delete Product?', 'This will permanently remove the product.', async function () {
+                    var result = await DataManager.post('products/delete', { Serial_No: serialNo });
+                    if (result.success) {
+                        UI.toast('🗑️ Product deleted!', 'success');
+                        DataManager.refresh();
+                    } else {
+                        UI.toast('❌ Delete failed', 'error');
+                    }
+                }, 'fa-trash-alt');
+            },
+
+            // Update Order
+            updateOrder: async function (orderId) {
+                var data = {
+                    Order_ID: orderId,
+                    Status: document.getElementById('orderStatusSelect').value,
+                    Tracking_ID: document.getElementById('orderTrackingId').value,
+                    Notes: document.getElementById('orderNotes').value
+                };
+
+                var status = data.Status;
+                if (status === 'Dispatched') data.Dispatched_Date = todayDate();
+                if (status === 'Delivered') data.Delivered_Date = todayDate();
+
+                var result = await DataManager.post('orders/update', data);
+                if (result.success) {
+                    UI.toast('✅ Order updated!', 'success');
+                    Modals.close('orderModal');
+                    DataManager.refresh();
+                } else {
+                    UI.toast('❌ Update failed', 'error');
+                }
+            },
+
+            // Verify Payment
+            // Verify Payment - With WhatsApp Message to Customer
+            // Verify Payment - Sends to Webhook (WhatsApp + Telegram)
+verifyPayment: async function(paymentId, status) {
+    var action = status === 'Verified' ? 'verify' : 'reject';
+    
+    // Get payment details from current modal data
+    var paymentData = null;
+    var payments = Store.data.payments || [];
+    for (var i = 0; i < payments.length; i++) {
+        if (DataManager.get(payments[i], ['Payment_ID', 'payment_id']) === paymentId) {
+            paymentData = payments[i];
+            break;
+        }
+    }
+    
+    var customerPhone = paymentData ? formatPhone(DataManager.get(paymentData, ['Phone', 'Customer_Phone'])) : '';
+    var customerName = paymentData ? DataManager.get(paymentData, ['Customer_Name', 'Name']) : 'Customer';
+    var amount = paymentData ? DataManager.get(paymentData, ['Amount_Expected', 'Amount']) : '0';
+    
+    Modals.confirm(action.charAt(0).toUpperCase() + action.slice(1) + ' Payment?', 
+        'Customer ko WhatsApp + Admin ko Telegram notification jayega.',
+        async function() {
+            var result = await DataManager.post('payments/verify', {
+                Payment_ID: paymentId,
+                Status: status,
+                Verified_By: 'Dashboard Admin',
+                Verified_At: new Date().toISOString(),
+                Customer_Phone: customerPhone,
+                Customer_Name: customerName,
+                Amount: amount,
+                send_whatsapp: true,
+                send_telegram: true
+            });
+            if (result.success) {
+                UI.toast('✅ Payment ' + status.toLowerCase() + '! Notifications sent.', 'success');
+                Modals.close('paymentModal');
+                DataManager.refresh();
+            } else {
+                UI.toast('❌ Action failed: ' + (result.error || 'Unknown error'), 'error');
+            }
+        },
+        status === 'Verified' ? 'fa-check-circle' : 'fa-times-circle'
+    );
+},
+
+            // Quick Order Status Update
+            quickUpdateOrderStatus: async function (orderId, newStatus) {
+                var data = { Order_ID: orderId, Status: newStatus };
+                if (newStatus === 'Dispatched') data.Dispatched_Date = todayDate();
+                if (newStatus === 'Delivered') data.Delivered_Date = todayDate();
+
+                var result = await DataManager.post('orders/update', data);
+                if (result.success) {
+                    UI.toast('✅ Order ' + newStatus + '!', 'success');
+                    DataManager.refresh();
+                }
+            }
+        };
+
+        // =====================================================
+        // UI
+        // =====================================================
+        const UI = {
+            showLoader: function () { document.getElementById('globalLoader').classList.remove('hidden'); },
+            hideLoader: function () { document.getElementById('globalLoader').classList.add('hidden'); },
+
+            toast: function (msg, type) {
+                var el = document.getElementById('toast');
+                var content = document.getElementById('toastContent');
+                var icon = document.getElementById('toastIcon');
+
+                document.getElementById('toastMsg').innerText = msg;
+
+                content.className = 'px-5 py-3 rounded-lg shadow-xl border-l-4 flex items-center gap-3 ';
+                if (type === 'success') {
+                    content.className += 'bg-green-600 text-white border-green-300';
+                    icon.className = 'fas fa-check-circle';
+                } else if (type === 'error') {
+                    content.className += 'bg-red-600 text-white border-red-300';
+                    icon.className = 'fas fa-exclamation-circle';
+                } else {
+                    content.className += 'bg-brand-maroon text-white border-brand-gold';
+                    icon.className = 'fas fa-info-circle text-brand-gold';
+                }
+
+                el.classList.remove('translate-y-20');
+                setTimeout(function () { el.classList.add('translate-y-20'); }, 3000);
+            },
+
+            renderCurrent: function () {
+                var page = Router.currentPage;
+                var container = document.getElementById('mainView');
+                try {
+                    Views[page] ? Views[page](container) : (container.innerHTML = '<div class="text-center p-20">Page not found</div>');
+                } catch (e) {
+                    console.error(e);
+                    container.innerHTML = '<div class="text-center p-20 text-red-500"><i class="fas fa-bug text-4xl mb-4"></i><br>Error: ' + e.message + '</div>';
+                }
+            }
+        };
+
+        // =====================================================
+        // REPORT HELPERS (NEW)
+        // =====================================================
+        const ReportHelpers = {
+            // Get date range based on filter type
+            getDateRange: function (filterType) {
+                var now = new Date();
+                var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                var startDate, endDate, label;
+
+                switch (filterType) {
+                    case 'today':
+                        startDate = today;
+                        endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+                        label = '📅 Today (' + formatDate(today) + ')';
+                        break;
+                    case 'yesterday':
+                        startDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+                        endDate = today;
+                        label = '📆 Yesterday (' + formatDate(startDate) + ')';
+                        break;
+                    case 'week':
+                        var dayOfWeek = today.getDay();
+                        var diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+                        startDate = new Date(today.setDate(diff));
+                        startDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                        endDate = new Date();
+                        label = '📊 This Week';
+                        break;
+                    case 'month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        endDate = new Date();
+                        label = '🗓️ This Month (' + now.toLocaleString('en-IN', { month: 'long', year: 'numeric' }) + ')';
+                        break;
+                    case 'year':
+                        startDate = new Date(now.getFullYear(), 0, 1);
+                        endDate = new Date();
+                        label = '📈 This Year (' + now.getFullYear() + ')';
+                        break;
+                    case 'lifetime':
+                    default:
+                        startDate = new Date(2000, 0, 1);
+                        endDate = new Date();
+                        label = '🏆 Lifetime (All Time)';
+                        break;
+                }
+
+                return { start: startDate, end: endDate, label: label };
+            },
+
+            // Check if date falls in range
+            isInRange: function (dateStr, range) {
+                if (!dateStr) return false;
+                try {
+                    var date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return false;
+                    return date >= range.start && date < range.end;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            // Filter data by date range
+            filterByRange: function (items, dateField, range) {
+                var self = this;
+                return items.filter(function (item) {
+                    var dateVal = DataManager.get(item, [dateField, 'Order_Date', 'Created_At', 'Timestamp', 'Date']);
+                    return self.isInRange(dateVal, range);
+                });
+            },
+
+            // Calculate stats from orders
+            calculateOrderStats: function (orders) {
+                var stats = {
+                    total: orders.length,
+                    pending: 0,
+                    confirmed: 0,
+                    dispatched: 0,
+                    delivered: 0,
+                    cancelled: 0,
+                    totalAmount: 0,
+                    deliveredAmount: 0
+                };
+
+                orders.forEach(function (o) {
+                    var status = safeStr(DataManager.get(o, ['Status'])).toLowerCase();
+                    var amount = safeNum(DataManager.get(o, ['Amount']));
+
+                    stats.totalAmount += amount;
+
+                    if (status.includes('pending')) stats.pending++;
+                    else if (status.includes('confirmed')) stats.confirmed++;
+                    else if (status.includes('dispatch')) stats.dispatched++;
+                    else if (status.includes('deliver')) { stats.delivered++; stats.deliveredAmount += amount; }
+                    else if (status.includes('cancel')) stats.cancelled++;
+                    else stats.pending++;
+                });
+
+                stats.successRate = stats.total > 0 ? Math.round((stats.delivered / stats.total) * 100) : 0;
+                stats.avgOrderValue = stats.total > 0 ? Math.round(stats.totalAmount / stats.total) : 0;
+
+                return stats;
+            },
+
+            // Calculate payment stats
+            calculatePaymentStats: function (payments) {
+                var stats = {
+                    total: payments.length,
+                    verified: 0,
+                    pending: 0,
+                    rejected: 0,
+                    verifiedAmount: 0,
+                    pendingAmount: 0,
+                    totalAmount: 0
+                };
+
+                payments.forEach(function (p) {
+                    var status = safeStr(DataManager.get(p, ['Status'])).toLowerCase();
+                    var amount = safeNum(DataManager.get(p, ['Amount_Expected', 'Amount']));
+
+                    stats.totalAmount += amount;
+
+                    if (status === 'verified' || status === 'approved') {
+                        stats.verified++;
+                        stats.verifiedAmount += amount;
+                    } else if (status === 'rejected') {
+                        stats.rejected++;
+                    } else {
+                        stats.pending++;
+                        stats.pendingAmount += amount;
+                    }
+                });
+
+                stats.verificationRate = stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0;
+
+                return stats;
+            }
+        };
+
+        // =====================================================
+        // VIEWS
+        // =====================================================
+        const Views = {
+
+            // ===== DASHBOARD =====
+            dashboard: function (el) {
+                var products = Store.data.products || [];
+                var orders = Store.data.orders || [];
+                var customers = Store.data.customers || [];
+                var payments = Store.data.payments || [];
+                var conversations = Store.data.conversations || [];
+
+                // Stats
+                var totalRevenue = 0;
+                var todayRevenue = 0;
+                var todayOrders = 0;
+                var today = todayDate();
+
+                orders.forEach(function (o) {
+                    var amt = safeNum(DataManager.get(o, ['Amount']));
+                    totalRevenue += amt;
+                    if (DataManager.get(o, ['Order_Date'], '').startsWith(today)) {
+                        todayRevenue += amt;
+                        todayOrders++;
+                    }
+                });
+
+                var pendingOrders = orders.filter(function (o) {
+                    return safeStr(DataManager.get(o, ['Status'])).toLowerCase() === 'pending';
+                }).length;
+
+                var pendingPayments = payments.filter(function (p) {
+                    var s = safeStr(DataManager.get(p, ['Status'])).toLowerCase();
+                    return s === 'pending' || s === '';
+                }).length;
+
+                var lowStock = products.filter(function (p) {
+                    return safeNum(DataManager.get(p, ['Stock_Qty'])) <= 5;
+                }).length;
+
+                var dispatchedOrders = orders.filter(function (o) {
+                    return safeStr(DataManager.get(o, ['Status'])).toLowerCase() === 'dispatched';
+                }).length;
+
+                var html = '';
+
+                // Quick Stats Row
+                html += '<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-brand-gold">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Total Revenue</p>';
+                html += '<h3 class="text-xl font-bold text-brand-maroon">' + formatCurrency(totalRevenue) + '</h3>';
+                html += '</div>';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-green-500">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Today Revenue</p>';
+                html += '<h3 class="text-xl font-bold text-green-600">' + formatCurrency(todayRevenue) + '</h3>';
+                html += '<p class="text-xs text-gray-400">' + todayOrders + ' orders</p>';
+                html += '</div>';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-blue-500">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Total Orders</p>';
+                html += '<h3 class="text-xl font-bold text-blue-600">' + orders.length + '</h3>';
+                html += '</div>';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-yellow-500">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Pending Orders</p>';
+                html += '<h3 class="text-xl font-bold text-yellow-600">' + pendingOrders + '</h3>';
+                html += '</div>';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-purple-500">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Pending Payments</p>';
+                html += '<h3 class="text-xl font-bold text-purple-600">' + pendingPayments + '</h3>';
+                html += '</div>';
+
+                html += '<div class="stat-card glass-card p-4 rounded-xl border-l-4 border-red-500">';
+                html += '<p class="text-gray-500 text-[10px] font-bold uppercase">Low Stock</p>';
+                html += '<h3 class="text-xl font-bold text-red-600">' + lowStock + '</h3>';
+                html += '</div>';
+
+                html += '</div>';
+
+                // Second Row Stats
+                html += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">';
+
+                html += '<div class="glass-card p-4 rounded-xl text-center">';
+                html += '<i class="fas fa-box text-3xl text-brand-maroon mb-2"></i>';
+                html += '<p class="font-bold text-xl">' + products.length + '</p>';
+                html += '<p class="text-xs text-gray-500">Products</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-4 rounded-xl text-center">';
+                html += '<i class="fas fa-users text-3xl text-blue-500 mb-2"></i>';
+                html += '<p class="font-bold text-xl">' + customers.length + '</p>';
+                html += '<p class="text-xs text-gray-500">Customers</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-4 rounded-xl text-center">';
+                html += '<i class="fas fa-truck text-3xl text-green-500 mb-2"></i>';
+                html += '<p class="font-bold text-xl">' + dispatchedOrders + '</p>';
+                html += '<p class="text-xs text-gray-500">In Transit</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-4 rounded-xl text-center">';
+                html += '<i class="fas fa-comments text-3xl text-purple-500 mb-2"></i>';
+                html += '<p class="font-bold text-xl">' + conversations.length + '</p>';
+                html += '<p class="text-xs text-gray-500">Messages</p>';
+                html += '</div>';
+
+                html += '</div>';
+
+                // Main Content Grid
+                html += '<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">';
+
+                // Pending Orders (Action Required)
+                html += '<div class="glass-card rounded-xl overflow-hidden">';
+                html += '<div class="bg-yellow-500 text-white p-3 flex justify-between items-center">';
+                html += '<h4 class="font-bold"><i class="fas fa-clock mr-2"></i>Pending Orders</h4>';
+                html += '<span class="bg-white text-yellow-600 px-2 py-0.5 rounded-full text-xs font-bold">' + pendingOrders + '</span>';
+                html += '</div>';
+                html += '<div class="p-3 max-h-64 overflow-auto space-y-2">';
+                var pending = orders.filter(function (o) { return safeStr(DataManager.get(o, ['Status'])).toLowerCase() === 'pending'; });
+                if (pending.length === 0) {
+                    html += '<p class="text-center text-gray-400 py-4">No pending orders 🎉</p>';
+                } else {
+                    pending.slice(0, 5).forEach(function (o) {
+                        var oid = DataManager.get(o, ['Order_ID']);
+                        html += '<div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">';
+                        html += '<div>';
+                        html += '<p class="font-bold text-sm">' + DataManager.get(o, ['Customer_Name']) + '</p>';
+                        html += '<p class="text-xs text-gray-400">' + DataManager.get(o, ['Product_Name']) + '</p>';
+                        html += '</div>';
+                        html += '<div class="text-right">';
+                        html += '<p class="font-bold text-brand-maroon">' + formatCurrency(DataManager.get(o, ['Amount'])) + '</p>';
+                        html += '<button onclick="Actions.quickUpdateOrderStatus(\'' + oid + '\', \'Confirmed\')" class="text-xs bg-green-500 text-white px-2 py-0.5 rounded mt-1">Confirm</button>';
+                        html += '</div>';
+                        html += '</div>';
+                    });
+                }
+                html += '</div></div>';
+
+                // Pending Payments (Action Required)
+                html += '<div class="glass-card rounded-xl overflow-hidden">';
+                html += '<div class="bg-purple-500 text-white p-3 flex justify-between items-center">';
+                html += '<h4 class="font-bold"><i class="fas fa-credit-card mr-2"></i>Verify Payments</h4>';
+                html += '<span class="bg-white text-purple-600 px-2 py-0.5 rounded-full text-xs font-bold">' + pendingPayments + '</span>';
+                html += '</div>';
+                html += '<div class="p-3 max-h-64 overflow-auto space-y-2">';
+                var pendingPay = payments.filter(function (p) {
+                    var s = safeStr(DataManager.get(p, ['Status'])).toLowerCase();
+                    return s === 'pending' || s === '';
+                });
+                if (pendingPay.length === 0) {
+                    html += '<p class="text-center text-gray-400 py-4">All payments verified ✅</p>';
+                } else {
+                    pendingPay.slice(0, 5).forEach(function (p, idx) {
+                        html += '<div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100" onclick="Modals.openPayment(Store.data.payments.filter(function(x){var s=safeStr(DataManager.get(x,[\'Status\'])).toLowerCase();return s===\'pending\'||s===\'\';})[' + idx + '])">';
+                        html += '<div>';
+                        html += '<p class="font-bold text-sm">' + DataManager.get(p, ['Customer_Name']) + '</p>';
+                        html += '<p class="text-xs text-gray-400">' + DataManager.get(p, ['Payment_ID']) + '</p>';
+                        html += '</div>';
+                        html += '<div class="text-right">';
+                        html += '<p class="font-bold text-purple-600">' + formatCurrency(DataManager.get(p, ['Amount_Expected'])) + '</p>';
+                        html += '<span class="text-xs text-gray-400">Click to verify</span>';
+                        html += '</div>';
+                        html += '</div>';
+                    });
+                }
+                html += '</div></div>';
+
+                // Recent Messages
+                html += '<div class="glass-card rounded-xl overflow-hidden">';
+                html += '<div class="bg-brand-maroon text-white p-3 flex justify-between items-center">';
+                html += '<h4 class="font-bold"><i class="fas fa-comments mr-2"></i>Recent Chats</h4>';
+                html += '</div>';
+                html += '<div class="p-3 max-h-64 overflow-auto space-y-2">';
+                if (conversations.length === 0) {
+                    html += '<p class="text-center text-gray-400 py-4">No messages</p>';
+                } else {
+                    conversations.slice(0, 5).forEach(function (c) {
+                        var phone = formatPhone(DataManager.get(c, ['Phone']));
+                        html += '<div class="p-2 bg-gray-50 rounded-lg">';
+                        html += '<div class="flex justify-between items-start">';
+                        html += '<p class="font-bold text-sm">' + DataManager.get(c, ['Sender']) + '</p>';
+                        if (phone) html += '<a href="https://wa.me/' + phone + '" target="_blank" class="text-green-500"><i class="fab fa-whatsapp"></i></a>';
+                        html += '</div>';
+                        html += '<p class="text-xs text-gray-600 truncate">' + DataManager.get(c, ['Message']) + '</p>';
+                        html += '<span class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">' + DataManager.get(c, ['Action']) + '</span>';
+                        html += '</div>';
+                    });
+                }
+                html += '</div></div>';
+
+                html += '</div>';
+
+                // Low Stock Alert
+                if (lowStock > 0) {
+                    html += '<div class="mt-5 glass-card rounded-xl overflow-hidden">';
+                    html += '<div class="bg-red-500 text-white p-3"><h4 class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Low Stock Alert</h4></div>';
+                    html += '<div class="p-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">';
+                    products.filter(function (p) { return safeNum(DataManager.get(p, ['Stock_Qty'])) <= 5; }).forEach(function (p) {
+                        var imgUrl = DataManager.convertDriveUrl(DataManager.get(p, ['Image_URL'])) || 'https://via.placeholder.com/100/600000/fff?text=No';
+                        html += '<div class="bg-red-50 border border-red-200 rounded-lg p-2 text-center">';
+                        html += '<img src="' + imgUrl + '" class="w-12 h-12 object-cover rounded mx-auto mb-1" onerror="this.src=\'https://via.placeholder.com/100\'">';
+                        html += '<p class="text-xs font-bold truncate">' + DataManager.get(p, ['Saree_Name', 'Product_Name']) + '</p>';
+                        html += '<p class="text-red-600 font-bold">Qty: ' + DataManager.get(p, ['Stock_Qty'], '0') + '</p>';
+                        html += '</div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                // Quick Stats Chart
+                html += '<div class="mt-5 glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4 font-heading">📊 Overview</h4>';
+                html += '<canvas id="overviewChart" height="100"></canvas>';
+                html += '</div>';
+
+                el.innerHTML = html;
+
+                // Render Chart
+                setTimeout(function () {
+                    var ctx = document.getElementById('overviewChart');
+                    if (ctx) {
+                        // Calculate order status counts
+                        var statusCounts = { Pending: 0, Confirmed: 0, Dispatched: 0, Delivered: 0, Cancelled: 0 };
+                        orders.forEach(function (o) {
+                            var s = safeStr(DataManager.get(o, ['Status']));
+                            if (statusCounts[s] !== undefined) statusCounts[s]++;
+                            else statusCounts['Pending']++;
+                        });
+
+                        new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Pending', 'Confirmed', 'Dispatched', 'Delivered', 'Cancelled'],
+                                datasets: [{
+                                    data: [statusCounts.Pending, statusCounts.Confirmed, statusCounts.Dispatched, statusCounts.Delivered, statusCounts.Cancelled],
+                                    backgroundColor: ['#EAB308', '#3B82F6', '#8B5CF6', '#22C55E', '#EF4444']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                    }
+                }, 100);
+            },
+
+            // ===== PRODUCTS =====
+            products: function (el) {
+                var products = Store.data.products || [];
+
+                var html = '<div class="flex justify-between items-center mb-4 flex-wrap gap-3">';
+                html += '<div><span class="text-sm text-gray-500"><b>' + products.length + '</b> Products</span></div>';
+                html += '<button onclick="Modals.openProductForm(null)" class="btn-primary"><i class="fas fa-plus mr-2"></i>Add Product</button>';
+                html += '</div>';
+
+                if (products.length === 0) {
+                    html += '<div class="text-center p-20 glass-card rounded-xl"><i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i><p class="text-gray-500">No products found</p></div>';
+                } else {
+                    html += '<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">';
+                    products.forEach(function (p, idx) {
+                        var name = DataManager.get(p, ['Saree_Name', 'Product_Name', 'Name']);
+                        var price = DataManager.get(p, ['Price']);
+                        var category = DataManager.get(p, ['Category']);
+                        var stockQty = safeNum(DataManager.get(p, ['Stock_Qty']));
+                        var stockStatus = DataManager.get(p, ['Stock_Status'], 'Available');
+                        var imgUrl = DataManager.convertDriveUrl(DataManager.get(p, ['Image_URL'])) || 'https://via.placeholder.com/300x400/600000/fff?text=No+Image';
+                        var serialNo = DataManager.get(p, ['Serial_No']);
+
+                        var isLow = stockQty <= 5;
+                        var isOut = stockStatus === 'Unavailable' || stockQty <= 0;
+
+                        html += '<div class="glass-card rounded-xl overflow-hidden group">';
+                        html += '<div class="h-44 bg-gray-200 relative">';
+                        html += '<img src="' + imgUrl + '" class="w-full h-full object-cover" onerror="this.src=\'https://via.placeholder.com/300x400/ccc/666?text=Error\'">';
+                        html += '<span class="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded text-[10px] font-bold">' + category + '</span>';
+                        if (isOut) {
+                            html += '<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">OUT OF STOCK</div>';
+                        } else if (isLow) {
+                            html += '<span class="absolute top-2 right-2 bg-red-500 text-white px-2 py-0.5 rounded text-[10px]">Low: ' + stockQty + '</span>';
+                        } else {
+                            html += '<span class="absolute top-2 right-2 bg-green-500 text-white px-2 py-0.5 rounded text-[10px]">Qty: ' + stockQty + '</span>';
+                        }
+                        html += '<div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">';
+                        html += '<button onclick="Modals.openProductForm(Store.data.products[' + idx + '])" class="bg-white text-brand-maroon px-3 py-2 rounded-lg text-sm font-bold"><i class="fas fa-edit"></i></button>';
+                        html += '<button onclick="Actions.deleteProduct(\'' + serialNo + '\')" class="bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-bold"><i class="fas fa-trash"></i></button>';
+                        html += '</div>';
+                        html += '</div>';
+                        html += '<div class="p-3">';
+                        html += '<h4 class="font-bold text-sm truncate">' + name + '</h4>';
+                        html += '<p class="text-brand-maroon font-bold text-lg">' + formatCurrency(price) + '</p>';
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                }
+
+                el.innerHTML = html;
+            },
+
+            // ===== ORDERS =====
+            // ===== ORDERS VIEW - ONLY CONFIRMED/VALID ORDERS =====
+            orders: function (el) {
+    var orders = Store.data.orders || [];
+    
+    // 🔥 UPDATED FILTER:
+    var filteredOrders = orders.filter(function(o) {
+        var status = safeStr(DataManager.get(o, ['Status'])).toLowerCase();
+        var amount = safeNum(DataManager.get(o, ['Amount']));
+        
+        // 1. Agar status "Confirmed", "Dispatched" ya "Delivered" hai, toh zaroor dikhao (bhale amount 0 ho)
+        if (status === 'confirmed' || status === 'dispatched' || status === 'delivered') {
+            return true;
+        }
+
+        // 2. Baki cases mein (jaise Inquiry), sirf tab dikhao agar amount 0 से zyada ho aur Pending Payment na ho
+        var isValidOrder = !status.includes('pending payment') && amount > 0;
+        
+        return isValidOrder;
+    });
+
+    // ... baaki ka table rendering code yahan se start hoga
+
+    var html = '<div class="mb-4 flex justify-between items-center flex-wrap gap-3">';
+    html += '<span class="text-sm text-gray-500"><b>' + filteredOrders.length + '</b> Confirmed Orders</span>';
+    html += '<div class="flex gap-2">';
+    
+    var currentFilter = Views.orderFilter || 'All';
+    ['All', 'Confirmed', 'Processing', 'Dispatched', 'Delivered'].forEach(function (s) {
+        var isActive = currentFilter === s;
+        html += '<button onclick="Views.setOrderFilter(\'' + s + '\')" class="px-3 py-1 rounded-full text-xs font-bold border ' + 
+                (isActive ? 'bg-brand-maroon text-white' : 'bg-white text-gray-600 hover:bg-gray-100') + '">' + s + '</button>';
+    });
+    html += '</div></div>';
+
+    // Apply status filter
+    if (currentFilter !== 'All') {
+        filteredOrders = filteredOrders.filter(function(o) {
+            return safeStr(DataManager.get(o, ['Status'])).toLowerCase().includes(currentFilter.toLowerCase());
+        });
+    }
+
+    if (filteredOrders.length === 0) {
+        html += '<div class="text-center p-20 glass-card rounded-xl">';
+        html += '<i class="fas fa-shopping-bag text-5xl text-gray-300 mb-4"></i>';
+        html += '<p class="text-gray-500">No confirmed orders found</p>';
+        html += '<p class="text-xs text-gray-400 mt-2">Orders will appear here after payment confirmation</p>';
+        html += '</div>';
+    } else {
+        html += '<div class="glass-card rounded-xl overflow-x-auto">';
+        html += '<table class="w-full text-sm">';
+        html += '<thead class="bg-gray-50 border-b text-gray-500 text-xs uppercase"><tr>';
+        html += '<th class="p-3 text-left">Order</th>';
+        html += '<th class="p-3 text-left">Customer</th>';
+        html += '<th class="p-3 text-left">Product</th>';
+        html += '<th class="p-3 text-left">Amount</th>';
+        html += '<th class="p-3 text-left">Status</th>';
+        html += '<th class="p-3 text-left">Date</th>';
+        html += '<th class="p-3 text-left">Actions</th>';
+        html += '</tr></thead><tbody>';
+
+        filteredOrders.forEach(function (o) {
+            var status = DataManager.get(o, ['Status'], 'Confirmed');
+            var phone = formatPhone(DataManager.get(o, ['Phone']));
+            var amount = safeNum(DataManager.get(o, ['Amount']));
+            var orderId = DataManager.get(o, ['Order_ID']);
+
+            var statusClass = 'bg-blue-100 text-blue-700';
+            var sl = safeStr(status).toLowerCase();
+            if (sl.includes('confirmed')) statusClass = 'bg-blue-100 text-blue-700';
+            else if (sl.includes('processing')) statusClass = 'bg-indigo-100 text-indigo-700';
+            else if (sl.includes('dispatch')) statusClass = 'bg-purple-100 text-purple-700';
+            else if (sl.includes('deliver')) statusClass = 'bg-green-100 text-green-700';
+            else if (sl.includes('cancel')) statusClass = 'bg-red-100 text-red-700';
+
+            // Find original index in Store.data.orders
+            var originalIdx = Store.data.orders.indexOf(o);
+
+            html += '<tr class="border-b hover:bg-orange-50/50">';
+            html += '<td class="p-3 font-bold text-gray-600">' + orderId + '</td>';
+            html += '<td class="p-3">';
+            html += '<div class="font-bold">' + DataManager.get(o, ['Customer_Name']) + '</div>';
+            html += '<div class="text-xs text-gray-400">' + DataManager.get(o, ['Phone']) + '</div>';
+            html += '</td>';
+            html += '<td class="p-3">';
+            html += '<div class="text-gray-600">' + DataManager.get(o, ['Product_Name', 'Serial_No']) + '</div>';
+            html += '<div class="text-xs text-gray-400">' + DataManager.get(o, ['Serial_No']) + '</div>';
+            html += '</td>';
+            html += '<td class="p-3 font-bold text-brand-maroon">' + formatCurrency(amount) + '</td>';
+            html += '<td class="p-3"><span class="badge ' + statusClass + '">' + status + '</span></td>';
+            html += '<td class="p-3 text-gray-500 text-xs">' + formatDate(DataManager.get(o, ['Order_Date'])) + '</td>';
+            html += '<td class="p-3 flex gap-2">';
+            html += '<button onclick="Modals.openOrder(Store.data.orders[' + originalIdx + '])" class="text-brand-maroon hover:bg-brand-maroon hover:text-white p-1.5 rounded" title="View Order"><i class="fas fa-eye"></i></button>';
+            if (phone) {
+                html += '<a href="https://wa.me/' + phone + '" target="_blank" class="text-green-600 hover:bg-green-100 p-1.5 rounded" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>';
+            }
+            html += '</td></tr>';
+        });
+
+        html += '</tbody></table></div>';
+    }
+
+    el.innerHTML = html;
+},
+
+// Order Filter Function
+orderFilter: 'All',
+setOrderFilter: function(filter) {
+    Views.orderFilter = filter;
+    UI.renderCurrent();
+},
+
+            filterOrders: function (status) {
+                // This is a simple client-side filter demo
+                UI.toast('Filter: ' + status, 'info');
+            },
+
+            // ===== PAYMENTS =====
+            payments: function (el) {
+                var payments = Store.data.payments || [];
+                var pending = payments.filter(function (p) { var s = safeStr(DataManager.get(p, ['Status'])).toLowerCase(); return s === 'pending' || s === ''; }).length;
+
+                var html = '<div class="mb-4 flex justify-between items-center">';
+                html += '<span class="text-sm text-gray-500"><b>' + payments.length + '</b> Payments</span>';
+                html += '<span class="badge bg-yellow-100 text-yellow-700">' + pending + ' Pending</span>';
+                html += '</div>';
+
+                if (payments.length === 0) {
+                    html += '<div class="text-center p-20 glass-card rounded-xl"><i class="fas fa-credit-card text-5xl text-gray-300 mb-4"></i><p class="text-gray-500">No payments found</p></div>';
+                } else {
+                    html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+                    payments.forEach(function (p, idx) {
+                        var status = DataManager.get(p, ['Status'], 'Pending');
+                        var sl = safeStr(status).toLowerCase();
+                        var borderColor = 'border-yellow-500';
+                        var statusClass = 'bg-yellow-100 text-yellow-700';
+                        if (sl === 'verified') { borderColor = 'border-green-500'; statusClass = 'bg-green-100 text-green-700'; }
+                        if (sl === 'rejected') { borderColor = 'border-red-500'; statusClass = 'bg-red-100 text-red-700'; }
+
+                        html += '<div class="glass-card rounded-xl overflow-hidden border-l-4 ' + borderColor + ' cursor-pointer hover:shadow-lg" onclick="Modals.openPayment(Store.data.payments[' + idx + '])">';
+                        html += '<div class="p-4">';
+                        html += '<div class="flex justify-between items-start mb-3">';
+                        html += '<div><p class="font-bold">' + DataManager.get(p, ['Customer_Name']) + '</p>';
+                        html += '<p class="text-xs text-gray-400">' + DataManager.get(p, ['Payment_ID']) + '</p></div>';
+                        html += '<span class="badge ' + statusClass + '">' + status + '</span>';
+                        html += '</div>';
+                        html += '<p class="text-2xl font-bold text-brand-maroon">' + formatCurrency(DataManager.get(p, ['Amount_Expected'])) + '</p>';
+                        html += '<p class="text-xs text-gray-400 mt-2">' + formatDate(DataManager.get(p, ['Timestamp'])) + '</p>';
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                }
+
+                el.innerHTML = html;
+            },
+
+            // ===== CUSTOMERS =====
+            customers: function (el) {
+                var customers = Store.data.customers || [];
+
+                var html = '<div class="mb-4"><span class="text-sm text-gray-500"><b>' + customers.length + '</b> Customers</span></div>';
+
+                if (customers.length === 0) {
+                    html += '<div class="text-center p-20 glass-card rounded-xl"><i class="fas fa-users text-5xl text-gray-300 mb-4"></i><p class="text-gray-500">No customers found</p></div>';
+                } else {
+                    html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+                    customers.forEach(function (c) {
+                        var phone = formatPhone(DataManager.get(c, ['Phone']));
+                        var status = DataManager.get(c, ['Status'], 'active');
+                        var statusClass = sl === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600';
+                        var sl = safeStr(status).toLowerCase();
+
+                        html += '<div class="glass-card p-4 rounded-xl">';
+                        html += '<div class="flex items-center gap-3 mb-3">';
+                        html += '<div class="w-12 h-12 bg-brand-maroon text-white rounded-full flex items-center justify-center text-lg font-bold">' + safeStr(DataManager.get(c, ['Name'])).charAt(0).toUpperCase() + '</div>';
+                        html += '<div class="flex-1"><p class="font-bold">' + DataManager.get(c, ['Name']) + '</p><p class="text-sm text-gray-500">' + DataManager.get(c, ['Phone']) + '</p></div>';
+                        html += '<span class="badge ' + (sl === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600') + '">' + status + '</span>';
+                        html += '</div>';
+                        html += '<div class="grid grid-cols-2 gap-2 text-center mb-3">';
+                        html += '<div class="bg-gray-50 p-2 rounded"><p class="text-[10px] text-gray-400">Orders</p><p class="font-bold">' + DataManager.get(c, ['Total_Orders'], '0') + '</p></div>';
+                        html += '<div class="bg-gray-50 p-2 rounded"><p class="text-[10px] text-gray-400">Spent</p><p class="font-bold text-brand-maroon">' + formatCurrency(DataManager.get(c, ['Total_Spent'])) + '</p></div>';
+                        html += '</div>';
+                        html += '<div class="flex gap-2">';
+                        if (phone) {
+                            html += '<a href="tel:' + phone + '" class="flex-1 bg-blue-100 text-blue-600 py-2 rounded text-center text-sm font-bold"><i class="fas fa-phone mr-1"></i>Call</a>';
+                            html += '<a href="https://wa.me/' + phone + '" target="_blank" class="flex-1 bg-green-100 text-green-600 py-2 rounded text-center text-sm font-bold"><i class="fab fa-whatsapp mr-1"></i>Chat</a>';
+                        }
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                }
+
+                el.innerHTML = html;
+            },
+
+            // ===== CONVERSATIONS =====
+            conversations: function (el) {
+                var conversations = Store.data.conversations || [];
+
+                // Group by phone
+                var grouped = {};
+                conversations.forEach(function (c) {
+                    var phone = safeStr(DataManager.get(c, ['Phone'], 'unknown'));
+                    if (!grouped[phone]) grouped[phone] = [];
+                    grouped[phone].push(c);
+                });
+
+                var html = '<div class="mb-4"><span class="text-sm text-gray-500"><b>' + conversations.length + '</b> Messages from <b>' + Object.keys(grouped).length + '</b> Customers</span></div>';
+
+                if (conversations.length === 0) {
+                    html += '<div class="text-center p-20 glass-card rounded-xl"><i class="fas fa-comments text-5xl text-gray-300 mb-4"></i><p class="text-gray-500">No conversations</p></div>';
+                } else {
+                    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">';
+                    Object.keys(grouped).forEach(function (phone) {
+                        var msgs = grouped[phone];
+                        var sender = DataManager.get(msgs[0], ['Sender', 'Name'], 'Customer');
+                        var cleanPhone = formatPhone(phone);
+
+                        html += '<div class="glass-card rounded-xl overflow-hidden">';
+                        html += '<div class="bg-brand-maroon text-white p-3 flex justify-between items-center">';
+                        html += '<div><p class="font-bold">' + sender + '</p><p class="text-xs text-gray-300">' + phone + '</p></div>';
+                        if (cleanPhone) html += '<a href="https://wa.me/' + cleanPhone + '" target="_blank" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm"><i class="fab fa-whatsapp mr-1"></i>Reply</a>';
+                        html += '</div>';
+                        html += '<div class="p-3 max-h-60 overflow-auto bg-gray-50 space-y-2">';
+                        msgs.forEach(function (m) {
+                            var action = DataManager.get(m, ['Action']);
+                            var actionClass = 'bg-gray-200 text-gray-600';
+                            if (safeStr(action).includes('order')) actionClass = 'bg-green-200 text-green-700';
+                            if (safeStr(action).includes('query')) actionClass = 'bg-blue-200 text-blue-700';
+
+                            html += '<div class="bg-white p-2 rounded-lg shadow-sm">';
+                            html += '<p class="text-sm">' + DataManager.get(m, ['Message']) + '</p>';
+                            if (action) html += '<span class="text-[10px] px-1.5 py-0.5 rounded ' + actionClass + '">' + action + '</span>';
+                            html += '</div>';
+                        });
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+                }
+
+                el.innerHTML = html;
+            },
+
+            // ===== ANALYTICS =====
+            analytics: function (el) {
+                var orders = Store.data.orders || [];
+                var products = Store.data.products || [];
+
+                // Calculate category-wise sales
+                var categorySales = {};
+                products.forEach(function (p) {
+                    var cat = DataManager.get(p, ['Category'], 'Other');
+                    if (!categorySales[cat]) categorySales[cat] = 0;
+                    categorySales[cat] += safeNum(DataManager.get(p, ['Price'])) * safeNum(DataManager.get(p, ['Stock_Qty']));
+                });
+
+                var html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">';
+
+                // Order Status Chart
+                html += '<div class="glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4 font-heading">📊 Order Status Distribution</h4>';
+                html += '<canvas id="statusChart" height="200"></canvas>';
+                html += '</div>';
+
+                // Category Chart
+                html += '<div class="glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4 font-heading">📦 Category Inventory Value</h4>';
+                html += '<canvas id="categoryChart" height="200"></canvas>';
+                html += '</div>';
+
+                html += '</div>';
+
+                // Summary Cards
+                html += '<div class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-4">';
+
+                var delivered = orders.filter(function (o) { return safeStr(DataManager.get(o, ['Status'])).toLowerCase().includes('deliver'); }).length;
+                var successRate = orders.length > 0 ? Math.round((delivered / orders.length) * 100) : 0;
+
+                html += '<div class="glass-card p-4 rounded-xl text-center"><p class="text-xs text-gray-400">Success Rate</p><p class="text-3xl font-bold text-green-600">' + successRate + '%</p></div>';
+                html += '<div class="glass-card p-4 rounded-xl text-center"><p class="text-xs text-gray-400">Avg Order Value</p><p class="text-3xl font-bold text-brand-maroon">' + formatCurrency(orders.length > 0 ? orders.reduce(function (s, o) { return s + safeNum(DataManager.get(o, ['Amount'])); }, 0) / orders.length : 0) + '</p></div>';
+                html += '<div class="glass-card p-4 rounded-xl text-center"><p class="text-xs text-gray-400">Categories</p><p class="text-3xl font-bold text-blue-600">' + Object.keys(categorySales).length + '</p></div>';
+                html += '<div class="glass-card p-4 rounded-xl text-center"><p class="text-xs text-gray-400">Delivered</p><p class="text-3xl font-bold text-purple-600">' + delivered + '</p></div>';
+
+                html += '</div>';
+
+                el.innerHTML = html;
+
+                // Render Charts
+                setTimeout(function () {
+                    // Status Chart
+                    var statusCounts = { Pending: 0, Confirmed: 0, Dispatched: 0, Delivered: 0, Cancelled: 0 };
+                    orders.forEach(function (o) {
+                        var s = safeStr(DataManager.get(o, ['Status']));
+                        if (statusCounts[s] !== undefined) statusCounts[s]++;
+                        else statusCounts['Pending']++;
+                    });
+
+                    new Chart(document.getElementById('statusChart'), {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(statusCounts),
+                            datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#EAB308', '#3B82F6', '#8B5CF6', '#22C55E', '#EF4444'] }]
+                        },
+                        options: { plugins: { legend: { position: 'bottom' } } }
+                    });
+
+                    // Category Chart
+                    new Chart(document.getElementById('categoryChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(categorySales),
+                            datasets: [{ label: 'Value (₹)', data: Object.values(categorySales), backgroundColor: '#600000' }]
+                        },
+                        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                    });
+                }, 100);
+            },
+
+            // ===== REPORTS (NEW) =====
+            reports: function (el) {
+                var orders = Store.data.orders || [];
+                var payments = Store.data.payments || [];
+                var currentFilter = Views.reportFilter || 'today';
+
+                var html = '';
+
+                // Filter Buttons
+                html += '<div class="mb-6">';
+                html += '<div class="flex flex-wrap gap-2 justify-center">';
+
+                var filters = [
+                    { key: 'today', label: '📅 Today', color: 'blue' },
+                    { key: 'yesterday', label: '📆 Yesterday', color: 'gray' },
+                    { key: 'week', label: '📊 This Week', color: 'purple' },
+                    { key: 'month', label: '🗓️ This Month', color: 'green' },
+                    { key: 'year', label: '📈 This Year', color: 'yellow' },
+                    { key: 'lifetime', label: '🏆 Lifetime', color: 'red' }
+                ];
+
+                filters.forEach(function (f) {
+                    var isActive = currentFilter === f.key;
+                    var btnClass = isActive
+                        ? 'bg-brand-maroon text-white shadow-lg transform scale-105'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border';
+                    html += '<button onclick="Views.setReportFilter(\'' + f.key + '\')" class="px-4 py-2 rounded-lg font-bold text-sm transition-all ' + btnClass + '">' + f.label + '</button>';
+                });
+
+                html += '</div>';
+                html += '</div>';
+
+                // Get date range
+                var range = ReportHelpers.getDateRange(currentFilter);
+
+                // Filter data
+                var filteredOrders = ReportHelpers.filterByRange(orders, 'Order_Date', range);
+                var filteredPayments = ReportHelpers.filterByRange(payments, 'Timestamp', range);
+
+                // Calculate stats
+                var orderStats = ReportHelpers.calculateOrderStats(filteredOrders);
+                var paymentStats = ReportHelpers.calculatePaymentStats(filteredPayments);
+
+                // Report Header
+                html += '<div class="glass-card p-4 rounded-xl mb-6 text-center bg-gradient-to-r from-brand-maroon to-red-800 text-white">';
+                html += '<h2 class="text-2xl font-bold mb-1">' + range.label + '</h2>';
+                html += '<p class="text-sm opacity-80">Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+                html += '</div>';
+
+                // Main Stats Grid
+                html += '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">';
+
+                html += '<div class="glass-card p-5 rounded-xl text-center border-t-4 border-blue-500">';
+                html += '<i class="fas fa-shopping-bag text-3xl text-blue-500 mb-2"></i>';
+                html += '<p class="text-3xl font-bold text-blue-600">' + orderStats.total + '</p>';
+                html += '<p class="text-xs text-gray-500 uppercase font-bold">Total Orders</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-5 rounded-xl text-center border-t-4 border-green-500">';
+                html += '<i class="fas fa-rupee-sign text-3xl text-green-500 mb-2"></i>';
+                html += '<p class="text-3xl font-bold text-green-600">' + formatCurrency(orderStats.totalAmount) + '</p>';
+                html += '<p class="text-xs text-gray-500 uppercase font-bold">Total Revenue</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-5 rounded-xl text-center border-t-4 border-purple-500">';
+                html += '<i class="fas fa-credit-card text-3xl text-purple-500 mb-2"></i>';
+                html += '<p class="text-3xl font-bold text-purple-600">' + paymentStats.total + '</p>';
+                html += '<p class="text-xs text-gray-500 uppercase font-bold">Total Payments</p>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-5 rounded-xl text-center border-t-4 border-brand-gold">';
+                html += '<i class="fas fa-check-circle text-3xl text-green-500 mb-2"></i>';
+                html += '<p class="text-3xl font-bold text-green-600">' + formatCurrency(paymentStats.verifiedAmount) + '</p>';
+                html += '<p class="text-xs text-gray-500 uppercase font-bold">Verified Amount</p>';
+                html += '</div>';
+
+                html += '</div>';
+
+                // Two Column Layout
+                html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+
+                // Order Statistics Card
+                html += '<div class="glass-card rounded-xl overflow-hidden">';
+                html += '<div class="bg-blue-600 text-white p-4">';
+                html += '<h3 class="font-bold text-lg"><i class="fas fa-shopping-cart mr-2"></i>Order Statistics</h3>';
+                html += '</div>';
+                html += '<div class="p-5">';
+
+                html += '<div class="space-y-4">';
+
+                // Order Status Breakdown
+                var orderStatuses = [
+                    { label: 'Pending', count: orderStats.pending, color: 'yellow', icon: 'clock' },
+                    { label: 'Confirmed', count: orderStats.confirmed, color: 'blue', icon: 'check' },
+                    { label: 'Dispatched', count: orderStats.dispatched, color: 'purple', icon: 'truck' },
+                    { label: 'Delivered', count: orderStats.delivered, color: 'green', icon: 'check-double' },
+                    { label: 'Cancelled', count: orderStats.cancelled, color: 'red', icon: 'times' }
+                ];
+
+                orderStatuses.forEach(function (s) {
+                    var percent = orderStats.total > 0 ? Math.round((s.count / orderStats.total) * 100) : 0;
+                    html += '<div class="flex items-center gap-3">';
+                    html += '<div class="w-10 h-10 rounded-full bg-' + s.color + '-100 flex items-center justify-center">';
+                    html += '<i class="fas fa-' + s.icon + ' text-' + s.color + '-600"></i>';
+                    html += '</div>';
+                    html += '<div class="flex-1">';
+                    html += '<div class="flex justify-between mb-1">';
+                    html += '<span class="text-sm font-bold">' + s.label + '</span>';
+                    html += '<span class="text-sm font-bold">' + s.count + ' (' + percent + '%)</span>';
+                    html += '</div>';
+                    html += '<div class="h-2 bg-gray-200 rounded-full overflow-hidden">';
+                    html += '<div class="h-full bg-' + s.color + '-500 rounded-full" style="width: ' + percent + '%"></div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div>';
+
+                // Order Summary
+                html += '<div class="mt-6 pt-4 border-t grid grid-cols-2 gap-4">';
+                html += '<div class="text-center p-3 bg-green-50 rounded-lg">';
+                html += '<p class="text-2xl font-bold text-green-600">' + orderStats.successRate + '%</p>';
+                html += '<p class="text-xs text-gray-500">Success Rate</p>';
+                html += '</div>';
+                html += '<div class="text-center p-3 bg-blue-50 rounded-lg">';
+                html += '<p class="text-2xl font-bold text-blue-600">' + formatCurrency(orderStats.avgOrderValue) + '</p>';
+                html += '<p class="text-xs text-gray-500">Avg Order Value</p>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '</div>';
+                html += '</div>';
+
+                // Payment Statistics Card
+                html += '<div class="glass-card rounded-xl overflow-hidden">';
+                html += '<div class="bg-purple-600 text-white p-4">';
+                html += '<h3 class="font-bold text-lg"><i class="fas fa-credit-card mr-2"></i>Payment Statistics</h3>';
+                html += '</div>';
+                html += '<div class="p-5">';
+
+                html += '<div class="space-y-4">';
+
+                // Payment Status Breakdown
+                var paymentStatuses = [
+                    { label: 'Verified', count: paymentStats.verified, amount: paymentStats.verifiedAmount, color: 'green', icon: 'check-circle' },
+                    { label: 'Pending', count: paymentStats.pending, amount: paymentStats.pendingAmount, color: 'yellow', icon: 'clock' },
+                    { label: 'Rejected', count: paymentStats.rejected, amount: 0, color: 'red', icon: 'times-circle' }
+                ];
+
+                paymentStatuses.forEach(function (s) {
+                    var percent = paymentStats.total > 0 ? Math.round((s.count / paymentStats.total) * 100) : 0;
+                    html += '<div class="flex items-center gap-3">';
+                    html += '<div class="w-10 h-10 rounded-full bg-' + s.color + '-100 flex items-center justify-center">';
+                    html += '<i class="fas fa-' + s.icon + ' text-' + s.color + '-600"></i>';
+                    html += '</div>';
+                    html += '<div class="flex-1">';
+                    html += '<div class="flex justify-between mb-1">';
+                    html += '<span class="text-sm font-bold">' + s.label + '</span>';
+                    html += '<span class="text-sm">' + s.count + ' • ' + formatCurrency(s.amount) + '</span>';
+                    html += '</div>';
+                    html += '<div class="h-2 bg-gray-200 rounded-full overflow-hidden">';
+                    html += '<div class="h-full bg-' + s.color + '-500 rounded-full" style="width: ' + percent + '%"></div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+
+                html += '</div>';
+
+                // Payment Summary
+                html += '<div class="mt-6 pt-4 border-t grid grid-cols-2 gap-4">';
+                html += '<div class="text-center p-3 bg-purple-50 rounded-lg">';
+                html += '<p class="text-2xl font-bold text-purple-600">' + paymentStats.verificationRate + '%</p>';
+                html += '<p class="text-xs text-gray-500">Verification Rate</p>';
+                html += '</div>';
+                html += '<div class="text-center p-3 bg-green-50 rounded-lg">';
+                html += '<p class="text-2xl font-bold text-green-600">' + formatCurrency(paymentStats.totalAmount) + '</p>';
+                html += '<p class="text-xs text-gray-500">Total Amount</p>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '</div>';
+                html += '</div>';
+
+                html += '</div>'; // End two column
+
+                // Chart Section
+                html += '<div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">';
+
+                html += '<div class="glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4"><i class="fas fa-chart-pie mr-2"></i>Order Distribution</h4>';
+                html += '<canvas id="reportOrderChart" height="200"></canvas>';
+                html += '</div>';
+
+                html += '<div class="glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4"><i class="fas fa-chart-pie mr-2"></i>Payment Distribution</h4>';
+                html += '<canvas id="reportPaymentChart" height="200"></canvas>';
+                html += '</div>';
+
+                html += '</div>';
+
+                // Quick Insights
+                html += '<div class="mt-6 glass-card p-5 rounded-xl">';
+                html += '<h4 class="font-bold text-gray-700 mb-4"><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Quick Insights</h4>';
+                html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+                // Insight 1
+                html += '<div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">';
+                html += '<p class="font-bold text-blue-800">📦 Orders</p>';
+                if (orderStats.total === 0) {
+                    html += '<p class="text-sm text-blue-600">No orders in this period</p>';
+                } else {
+                    html += '<p class="text-sm text-blue-600">' + orderStats.delivered + ' out of ' + orderStats.total + ' orders delivered successfully</p>';
+                }
+                html += '</div>';
+
+                // Insight 2
+                html += '<div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">';
+                html += '<p class="font-bold text-green-800">💰 Revenue</p>';
+                if (orderStats.deliveredAmount === 0) {
+                    html += '<p class="text-sm text-green-600">No revenue collected yet</p>';
+                } else {
+                    html += '<p class="text-sm text-green-600">' + formatCurrency(orderStats.deliveredAmount) + ' collected from delivered orders</p>';
+                }
+                html += '</div>';
+
+                // Insight 3
+                html += '<div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">';
+                html += '<p class="font-bold text-purple-800">💳 Payments</p>';
+                if (paymentStats.pending === 0) {
+                    html += '<p class="text-sm text-purple-600">All payments verified! 🎉</p>';
+                } else {
+                    html += '<p class="text-sm text-purple-600">' + paymentStats.pending + ' payments pending verification (' + formatCurrency(paymentStats.pendingAmount) + ')</p>';
+                }
+                html += '</div>';
+
+                html += '</div>';
+                html += '</div>';
+
+                el.innerHTML = html;
+
+                // Render Charts
+                setTimeout(function () {
+                    // Order Chart
+                    var orderCtx = document.getElementById('reportOrderChart');
+                    if (orderCtx) {
+                        new Chart(orderCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Pending', 'Confirmed', 'Dispatched', 'Delivered', 'Cancelled'],
+                                datasets: [{
+                                    data: [orderStats.pending, orderStats.confirmed, orderStats.dispatched, orderStats.delivered, orderStats.cancelled],
+                                    backgroundColor: ['#EAB308', '#3B82F6', '#8B5CF6', '#22C55E', '#EF4444']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                    }
+
+                    // Payment Chart
+                    var paymentCtx = document.getElementById('reportPaymentChart');
+                    if (paymentCtx) {
+                        new Chart(paymentCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Verified', 'Pending', 'Rejected'],
+                                datasets: [{
+                                    data: [paymentStats.verified, paymentStats.pending, paymentStats.rejected],
+                                    backgroundColor: ['#22C55E', '#EAB308', '#EF4444']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                    }
+                }, 100);
+            },
+
+            // Report Filter Setter
+            reportFilter: 'today',
+            setReportFilter: function (filter) {
+                Views.reportFilter = filter;
+                UI.renderCurrent();
+            }
+        };
+
+        // =====================================================
+        // ROUTER
+        // =====================================================
+        const Router = {
+            currentPage: 'dashboard',
+            nav: function (page) {
+                this.currentPage = page;
+                document.getElementById('pageTitle').innerText = page.charAt(0).toUpperCase() + page.slice(1);
+                document.querySelectorAll('.nav-item').forEach(function (btn) {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('data-page') === page) btn.classList.add('active');
+                });
+                UI.renderCurrent();
+            },
+            init: function () {
+                var self = this;
+                document.querySelectorAll('.nav-item').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var page = this.getAttribute('data-page');
+                        if (page) self.nav(page);
+                    });
+                });
+            }
+        };
+
+        // =====================================================
+        // APP
+        // =====================================================
+        const App = {
+            login: function () {
+                var pass = document.getElementById('passInput').value;
+                if (pass === CONFIG.PASS) {
+                    localStorage.setItem('mamta_auth', 'true');
+                    location.reload();
+                } else {
+                    document.getElementById('loginMsg').innerText = "❌ Wrong Password!";
+                }
+            },
+            logout: function () {
+                localStorage.removeItem('mamta_auth');
+                location.reload();
+            },
+            init: function () {
+                if (localStorage.getItem('mamta_auth') === 'true') {
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('dashboardApp').classList.remove('hidden');
+                    Router.init();
+
+                    // Form handler
+                    document.getElementById('productForm').addEventListener('submit', Actions.saveProduct);
+
+                    if (Store.load()) {
+                        document.getElementById('lastUpdate').innerText = Store.getLastUpdate();
+                        UI.renderCurrent();
+                    }
+                    setTimeout(function () { DataManager.refresh(); }, 300);
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () { App.init(); });
+    </script>
+</body>
+
+</html>
