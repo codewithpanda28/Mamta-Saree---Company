@@ -1,158 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mamta Saree - Admin Dashboard</title>
-    <!-- Google Fonts: Poppins -->
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Custom CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <!-- Loading Overlay -->
     <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p id="loading-message">Loading data...</p>
+        <div class="loader">
+            <div class="spinner"></div>
+            <p id="loading-message">Loading...</p>
+        </div>
     </div>
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <!-- Sidebar -->
-    <!-- Removed 'collapsed' class initially, so it starts expanded on desktop -->
-    <aside id="sidebar"> 
-        <div class="sidebar-header">
-            <h2>Mamta Saree</h2>
-        </div>
-        <nav class="sidebar-menu">
-            <a href="#" class="menu-item" data-tab="dashboard">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="products">
-                <i class="fas fa-box"></i>
-                <span>Products</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="orders">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Orders</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="payments">
-                <i class="fas fa-credit-card"></i>
-                <span>Payments</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="customers">
-                <i class="fas fa-users"></i>
-                <span>Customers</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="leads">
-                <i class="fas fa-bullhorn"></i>
-                <span>Leads</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="conversations">
-                <i class="fas fa-comments"></i>
-                <span>Conversations</span>
-            </a>
-            <a href="#" class="menu-item" data-tab="daily-report">
-                <i class="fas fa-chart-line"></i>
-                <span>Daily Report</span>
-            </a>
-            <!-- Add more menu items as needed -->
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main id="main-content">
-        <header class="header">
-            <div class="left-section">
-                <button id="toggle-sidebar" class="btn-icon">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 id="page-title">Dashboard</h1>
-            </div>
-            <div class="right-section">
-                <button class="btn btn-primary" onclick="loadAllData()">
-                    <i class="fas fa-sync-alt"></i> Refresh Data
-                </button>
-                <!-- Add other header actions here -->
-            </div>
-        </header>
-
-        <!-- Stock Alerts - Will be populated by JS -->
-        <div id="stock-alerts"></div>
-
-        <!-- Tab Contents -->
-        <section id="dashboard-tab" class="tab-content active">
-            <div class="dashboard-stats" id="dashboard-stats">
-                <!-- Stat cards will be rendered here by JS -->
-            </div>
-
-            <div class="dashboard-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-history"></i> Recent Orders</h3>
-                    </div>
-                    <div class="card-content" id="recent-orders">
-                        <!-- Recent orders table will be rendered here by JS -->
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-box-open"></i> Top Selling Products</h3>
-                    </div>
-                    <div class="card-content" id="top-products">
-                        <!-- Top products list will be rendered here by JS -->
-                    </div>
-                </div>
-
-                <div class="card revenue-chart-card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-chart-area"></i> Revenue Last 7 Days</h3>
-                    </div>
-                    <div class="card-content" id="revenue-chart">
-                        <!-- Revenue chart will be rendered here by JS -->
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clipboard-list"></i> Pending Actions</h3>
-                    </div>
-                    <div class="card-content" id="pending-actions">
-                        <!-- Pending actions list will be rendered here by JS -->
-                    </div>
+    <!-- Main Container -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-store"></i>
+                    <span class="logo-text">Mamta Saree</span>
                 </div>
             </div>
-        </section>
-
-        <section id="products-tab" class="tab-content">
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <input type="text" id="product-search" placeholder="Search by S.No, Name, Category...">
+            
+            <nav class="sidebar-nav">
+                <div class="menu-item active" data-tab="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
                 </div>
-                <button class="btn btn-primary" onclick="openProductModal()">
-                    <i class="fas fa-plus"></i> Add Product
-                </button>
-            </div>
-            <div id="products-table">
-                <!-- Products will be rendered here by JS (card format) -->
-            </div>
-        </section>
-
-        <section id="orders-tab" class="tab-content">
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <input type="text" id="order-search" placeholder="Search by Order ID, Customer, Product...">
+                <div class="menu-item" data-tab="products">
+                    <i class="fas fa-box"></i>
+                    <span>Products</span>
                 </div>
-                <div class="form-group">
+                <div class="menu-item" data-tab="orders">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                </div>
+                <div class="menu-item" data-tab="payments">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Payments</span>
+                </div>
+                <div class="menu-item" data-tab="customers">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </div>
+                <div class="menu-item" data-tab="leads">
+                    <i class="fas fa-fire"></i>
+                    <span>Leads</span>
+                </div>
+                <div class="menu-item" data-tab="daily-report" onclick="switchTab('daily-report')">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Daily Report</span>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="business-info">
+                    <i class="fas fa-phone"></i>
+                    <span>9905887725</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button id="toggle-sidebar" class="btn-icon">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
+
+
+                
+
+                
+                <div class="header-right">
+                    <!-- Notification Bell -->
+                    <div class="notification-wrapper">
+                        <button class="btn-icon notification-btn" onclick="toggleNotifications()" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-badge" class="notification-badge">0</span>
+                        </button>
+                        <div id="notifications-dropdown" class="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                <button class="btn-sm" onclick="checkNotifications()" title="Refresh">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div id="notifications-panel">
+                                <!-- Notifications will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Refresh Button -->
+                    <button id="refresh-btn" class="btn btn-outline" onclick="loadAllData()">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab -->
+            <section id="dashboard-tab" class="tab-content active">
+                <div id="dashboard-stats" class="stats-grid"></div>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-clock"></i> Recent Orders</h3>
+                        </div>
+                        <div class="card-body" id="recent-orders"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exclamation-circle"></i> Pending Payments</h3>
+                        </div>
+                        <div class="card-body" id="pending-payments"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Tab -->
+            <section id="products-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="product-search" placeholder="Search products...">
+                    </div>
+                    <button class="btn btn-primary" onclick="openProductModal()">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </div>
+                <div id="products-table"></div>
+            </section>
+
+            <!-- Orders Tab -->
+            <section id="orders-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="order-search" placeholder="Search orders...">
+                    </div>
                     <select id="order-status-filter">
-                        <option value="all">All Statuses</option>
+                        <option value="all">All Status</option>
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>
                         <option value="shipped">Shipped</option>
@@ -160,131 +163,120 @@
                         <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <select id="order-payment-filter">
-                        <option value="all">All Payments</option>
-                        <option value="cod">COD</option>
-                        <option value="50%">50% Paid</option>
-                        <option value="full">Full Paid</option>
-                        <option value="pending">Pending/Advance</option>
-                    </select>
-                </div>
-                <div class="date-range-container">
-                    <label for="order-date-from">From:</label>
-                    <input type="date" id="order-date-from">
-                    <span class="date-range-divider">-</span>
-                    <label for="order-date-to">To:</label>
-                    <input type="date" id="order-date-to">
-                </div>
-            </div>
-            <div id="orders-table">
-                <!-- Orders table will be rendered here by JS -->
-            </div>
-        </section>
+                <div id="orders-table"></div>
+            </section>
 
-        <section id="payments-tab" class="tab-content">
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <input type="text" id="payment-search" placeholder="Search by Payment ID, Order ID, Customer...">
+            <!-- Payments Tab -->
+            <section id="payments-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="payment-search" placeholder="Search payments...">
+                    </div>
                 </div>
-            </div>
-            <div id="payments-table">
-                <!-- Payments table will be rendered here by JS -->
-            </div>
-        </section>
+                <div id="payments-table"></div>
+            </section>
 
-        <section id="customers-tab" class="tab-content">
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <input type="text" id="customer-search" placeholder="Search by Name, Phone, Email...">
+            <!-- Customers Tab -->
+            <section id="customers-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="customer-search" placeholder="Search customers...">
+                    </div>
                 </div>
-                <button class="btn btn-success" onclick="openCustomerModal()">
-                    <i class="fas fa-plus"></i> Add Customer
-                </button>
-            </div>
-            <div id="customers-table">
-                <!-- Customers table will be rendered here by JS -->
-            </div>
-        </section>
+                <div id="customers-table"></div>
+            </section>
 
-        <section id="leads-tab" class="tab-content">
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <input type="text" id="lead-search" placeholder="Search by Name, Phone, Source, Status...">
+            <!-- Leads Tab -->
+            <section id="leads-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="lead-search" placeholder="Search leads...">
+                    </div>
+                    <div class="filter-btns">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn hot" data-filter="hot">🔥 Hot</button>
+                        <button class="filter-btn warm" data-filter="warm">🌡️ Warm</button>
+                        <button class="filter-btn cold" data-filter="cold">❄️ Cold</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openLeadModal()">
+                        <i class="fas fa-plus"></i> Add Lead
+                    </button>
                 </div>
-                <button class="btn btn-success" onclick="openLeadModal()">
-                    <i class="fas fa-plus"></i> Add Lead
-                </button>
-            </div>
-            <div id="leads-table">
-                <!-- Leads table will be rendered here by JS -->
-            </div>
-        </section>
+                <div id="leads-table"></div>
+            </section>
 
-        <section id="conversations-tab" class="tab-content">
-            <div class="conversation-header">
-                <h2><i class="fas fa-comments"></i> Customer Conversations</h2>
-                <p class="conversation-subtitle">View and manage all customer communications</p>
-            </div>
-            <div class="search-filter-bar conversation-filters">
-                <div class="form-group search-group">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="conversation-search" placeholder="Search by Sender, Message, Phone...">
+            <section id="daily-report-tab" class="tab-content">
+                <div class="tab-header">
+                    <div class="tab-header-left">
+                        <h2><i class="fas fa-chart-line"></i> Sales Report</h2>
+                    </div>
+                    <div class="report-filters">
+                        <button class="report-filter-btn active" data-filter="today" onclick="setReportFilter('today')">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>Today</span>
+                        </button>
+                        <button class="report-filter-btn" data-filter="yesterday" onclick="setReportFilter('yesterday')">
+                            <i class="fas fa-calendar-minus"></i>
+                            <span>Yesterday</span>
+                        </button>
+                        <button class="report-filter-btn" data-filter="this_week" onclick="setReportFilter('this_week')">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>This Week</span>
+                        </button>
+                        <button class="report-filter-btn" data-filter="this_month" onclick="setReportFilter('this_month')">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>This Month</span>
+                        </button>
+                        <button class="report-filter-btn" data-filter="this_year" onclick="setReportFilter('this_year')">
+                            <i class="fas fa-calendar"></i>
+                            <span>This Year</span>
+                        </button>
+                        <button class="report-filter-btn" data-filter="lifetime" onclick="setReportFilter('lifetime')">
+                            <i class="fas fa-infinity"></i>
+                            <span>Lifetime</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="date-range-container">
-                    <label for="conversation-date-from"><i class="fas fa-calendar-alt"></i> From:</label>
-                    <input type="date" id="conversation-date-from">
-                    <span class="date-range-divider">-</span>
-                    <label for="conversation-date-to">To:</label>
-                    <input type="date" id="conversation-date-to">
+                
+                <div id="daily-report-content">
+                    <!-- Report content will be rendered here -->
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading report...</p>
+                    </div>
                 </div>
-            </div>
-            <div id="conversations-list">
-                <!-- Conversations will be rendered here by JS -->
-            </div>
-        </section>
+            </section>
+        </main>
 
-        <section id="daily-report-tab" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chart-pie"></i> Report Filters</h3>
-                </div>
-                <div class="card-content" id="report-filters">
-                    <button class="btn btn-outline filter-btn active" data-filter="today">Today</button>
-                    <button class="btn btn-outline filter-btn" data-filter="yesterday">Yesterday</button>
-                    <button class="btn btn-outline filter-btn" data-filter="this_week">This Week</button>
-                    <button class="btn btn-outline filter-btn" data-filter="this_month">This Month</button>
-                    <button class="btn btn-outline filter-btn" data-filter="last_month">Last Month</button>
-                </div>
-            </div>
-            <div class="report-sections" id="daily-report-content">
-                <!-- Daily report content will be rendered here by JS -->
-            </div>
-        </section>
-    </main>
+        
+    </div>
+    
 
     <!-- Product Modal -->
     <div id="product-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="product-modal-title">Add Product</h3>
-                <span class="close-button" onclick="closeModal('product-modal')">&times;</span>
+                <h3 id="product-modal-title"><i class="fas fa-box"></i> Add Product</h3>
+                <button class="modal-close" onclick="closeModal('product-modal')">&times;</button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="product-edit-serial-no">
+                <input type="hidden" id="product-edit-serial">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="product-serial">Serial No.</label>
-                        <input type="text" id="product-serial" placeholder="Unique Product Serial No.">
+                        <label>Serial No *</label>
+                        <input type="text" id="product-serial" placeholder="e.g., S NO 1">
                     </div>
                     <div class="form-group">
-                        <label for="product-name">Product Name</label>
-                        <input type="text" id="product-name" placeholder="Saree Name/Product Name">
+                        <label>Product Name *</label>
+                        <input type="text" id="product-name" placeholder="e.g., Banarasi Silk Saree">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="product-category">Category</label>
+                        <label>Category</label>
                         <select id="product-category">
                             <option value="Silk">Silk</option>
                             <option value="Cotton">Cotton</option>
@@ -294,195 +286,47 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="product-price">Price (₹)</label>
-                        <input type="number" id="product-price" placeholder="Price" min="0" step="0.01">
+                        <label>Price (₹) *</label>
+                        <input type="number" id="product-price" placeholder="e.g., 2500">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="product-color">Color</label>
-                        <input type="text" id="product-color" placeholder="e.g., Red, Blue, Multi">
+                        <label>Color</label>
+                        <input type="text" id="product-color" placeholder="e.g., Red">
                     </div>
                     <div class="form-group">
-                        <label for="product-fabric">Fabric</label>
-                        <input type="text" id="product-fabric" placeholder="e.g., Kanjivaram, Banarasi">
+                        <label>Fabric</label>
+                        <input type="text" id="product-fabric" placeholder="e.g., Pure Silk">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="product-stock-qty">Stock Quantity</label>
-                    <input type="number" id="product-stock-qty" placeholder="Available Stock" min="0">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="product-stock" value="10" min="0">
                 </div>
                 <div class="form-group">
-                    <label for="product-image">Image URL</label>
-                    <input type="url" id="product-image" placeholder="Google Drive direct link or other image URL">
-                </div>
-                <div class="form-group">
-                    <label>Image Preview</label>
-                    <div class="product-image-preview" id="product-image-preview">
-                        <div class="no-image-placeholder small"><i class="fas fa-image"></i></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="product-desc">Description</label>
-                    <textarea id="product-desc" rows="3" placeholder="Product Description"></textarea>
+                    <label>Image URL (Google Drive)</label>
+                    <input type="url" id="product-image" placeholder="https://drive.google.com/...">
+                    <div id="product-image-preview" class="image-preview"></div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+                <button class="btn btn-primary" onclick="saveProduct()">
+                    <i class="fas fa-save"></i> Save
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Stock Update Modal -->
-    <div id="stock-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Update Stock</h3>
-                <span class="close-button" onclick="closeModal('stock-modal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Serial No:</label>
-                    <input type="text" id="stock-serial-no" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Current Quantity:</label>
-                    <span id="stock-current-qty" class="form-control-static">0</span>
-                </div>
-                <div class="form-group">
-                    <label for="stock-adjustment">Adjust By:</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button type="button" class="btn btn-danger" onclick="adjustStock(-10)">-10</button>
-                        <button type="button" class="btn btn-warning" onclick="adjustStock(-1)">-1</button>
-                        <input type="number" id="stock-adjustment" value="0" style="flex-grow: 1; text-align: center;">
-                        <button type="button" class="btn btn-success" onclick="adjustStock(1)">+1</button>
-                        <button type="button" class="btn btn-primary" onclick="adjustStock(10)">+10</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="stock-new-qty">New Quantity:</label>
-                    <input type="number" id="stock-new-qty" min="0">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('stock-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="updateStock()">Update Stock</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Order Details Modal -->
+    <!-- Order Modal -->
     <div id="order-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
-                <h3>Order Details</h3>
-                <span class="close-button" onclick="closeModal('order-modal')">&times;</span>
+                <h3><i class="fas fa-shopping-cart"></i> Order Details</h3>
+                <button class="modal-close" onclick="closeModal('order-modal')">&times;</button>
             </div>
-            <div class="modal-body" id="order-modal-body">
-                <!-- Order details will be dynamically loaded here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Tracking Modal -->
-    <div id="tracking-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add Tracking Information</h3>
-                <span class="close-button" onclick="closeModal('tracking-modal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="tracking-order-id-input">
-                <input type="hidden" id="tracking-phone">
-                <input type="hidden" id="tracking-customer-name">
-                <div class="form-group">
-                    <label for="tracking-id-input">Tracking ID</label>
-                    <input type="text" id="tracking-id-input" placeholder="Enter tracking ID">
-                </div>
-                <div class="form-group">
-                    <label for="tracking-courier">Courier Service</label>
-                    <select id="tracking-courier">
-                        <option value="BlueDart">BlueDart</option>
-                        <option value="Delhivery">Delhivery</option>
-                        <option value="DTDC">DTDC</option>
-                        <option value="FedEx">FedEx</option>
-                        <option value="XpressBees">XpressBees</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="tracking-link">Tracking URL (Optional)</label>
-                    <input type="url" id="tracking-link" placeholder="e.g., https://track.bluedart.com/...">
-                </div>
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="tracking-notify" checked style="width: auto;">
-                    <label for="tracking-notify" style="margin-bottom: 0;">Send WhatsApp notification to customer</label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('tracking-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addTrackingFromModal()">Add Tracking</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Video Modal -->
-    <div id="video-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Send Packing Video</h3>
-                <span class="close-button" onclick="closeModal('video-modal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="video-modal-phone">
-                <input type="hidden" id="video-modal-customer-name">
-                <div class="form-group">
-                    <label for="video-url">Video URL</label>
-                    <input type="url" id="video-url" placeholder="Enter link to packing video (e.g., Google Drive)">
-                </div>
-                <div class="form-group">
-                    <label for="video-message">WhatsApp Message</label>
-                    <textarea id="video-message" rows="4" placeholder="Customize your message"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('video-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="sendPackingVideo()">Send Video via WhatsApp</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Customer Modal -->
-    <div id="customer-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="customer-modal-title">Add Customer</h3>
-                <span class="close-button" onclick="closeModal('customer-modal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="customer-edit-phone">
-                <div class="form-group">
-                    <label for="customer-name-input">Customer Name</label>
-                    <input type="text" id="customer-name-input" placeholder="Customer's Full Name">
-                </div>
-                <div class="form-group">
-                    <label for="customer-phone-input">Phone Number</label>
-                    <input type="text" id="customer-phone-input" placeholder="e.g., 9876543210">
-                </div>
-                <div class="form-group">
-                    <label for="customer-email-input">Email (Optional)</label>
-                    <input type="email" id="customer-email-input" placeholder="customer@example.com">
-                </div>
-                <div class="form-group">
-                    <label for="customer-address-input">Address (Optional)</label>
-                    <textarea id="customer-address-input" rows="3" placeholder="Full Address"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('customer-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
-            </div>
+            <div class="modal-body" id="order-modal-body"></div>
         </div>
     </div>
 
@@ -490,80 +334,102 @@
     <div id="lead-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="lead-modal-title">Add Lead</h3>
-                <span class="close-button" onclick="closeModal('lead-modal')">&times;</span>
+                <h3 id="lead-modal-title"><i class="fas fa-fire"></i> Add Lead</h3>
+                <button class="modal-close" onclick="closeModal('lead-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="lead-edit-phone">
-                <div class="form-group">
-                    <label for="lead-name-input">Lead Name</label>
-                    <input type="text" id="lead-name-input" placeholder="Lead's Name">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" id="lead-name" placeholder="Customer name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone *</label>
+                        <input type="tel" id="lead-phone" placeholder="10 digit number">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Interest Level *</label>
+                        <select id="lead-status">
+                            <option value="Hot">🔥 Hot - Bahut Interested</option>
+                            <option value="Warm">🌡️ Warm - Interested</option>
+                            <option value="Cold">❄️ Cold - Thoda Interest</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Source</label>
+                        <select id="lead-source">
+                            <option value="WhatsApp">WhatsApp</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="lead-phone-input">Phone Number</label>
-                    <input type="text" id="lead-phone-input" placeholder="e.g., 9876543210">
+                    <label>Interested Product</label>
+                    <input type="text" id="lead-product" placeholder="e.g., S NO 5 - Red Saree">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Follow-up Date</label>
+                        <input type="date" id="lead-followup-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Follow-up Time</label>
+                        <input type="time" id="lead-followup-time" value="10:00">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="lead-email-input">Email (Optional)</label>
-                    <input type="email" id="lead-email-input" placeholder="lead@example.com">
-                </div>
-                <div class="form-group">
-                    <label for="lead-source-input">Source</label>
-                    <select id="lead-source-input">
-                        <option value="Instagram">Instagram</option>
-                        <option value="Facebook">Facebook</option>
-                        <option value="Website">Website</option>
-                        <option value="Reference">Reference</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="lead-status-input">Status</label>
-                    <select id="lead-status-input">
-                        <option value="New">New</option>
-                        <option value="Warm">Warm</option>
-                        <option value="Hot">Hot</option>
-                        <option value="Converted">Converted</option>
-                        <option value="Lost">Lost</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="lead-notes-input">Notes</label>
-                    <textarea id="lead-notes-input" rows="3" placeholder="Additional notes about the lead"></textarea>
+                    <label>Notes</label>
+                    <textarea id="lead-notes" rows="3" placeholder="Customer ke baare mein notes..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('lead-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveLead()">Save Lead</button>
+                <button class="btn btn-primary" onclick="saveLead()">
+                    <i class="fas fa-save"></i> Save Lead
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Image Viewer Modal -->
-    <div id="image-viewer-modal" class="modal">
-        <div class="modal-content" style="background: none; box-shadow: none;">
-            <span class="close-button" onclick="closeModal('image-viewer-modal')"
-                style="color: white; position: absolute; top: 10px; right: 20px; font-size: 40px; text-shadow: 0 0 5px black;">&times;</span>
-            <img id="viewer-image" src="" alt="Product Image">
-        </div>
-    </div>
-
-    <!-- Payment Details Modal -->
-    <div id="payment-modal" class="modal">
+    <!-- Followup Modal -->
+    <div id="followup-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Payment Details</h3>
-                <span class="close-button" onclick="closeModal('payment-modal')">&times;</span>
+                <h3><i class="fab fa-whatsapp"></i> Send Followup Message</h3>
+                <button class="modal-close" onclick="closeModal('followup-modal')">&times;</button>
             </div>
-            <div class="modal-body" id="payment-modal-body">
-                <!-- Payment details will be dynamically loaded here -->
+            <div class="modal-body">
+                <input type="hidden" id="followup-phone">
+                <input type="hidden" id="followup-name">
+                <div class="form-group">
+                    <label>Message Template</label>
+                    <select id="followup-template" onchange="updateFollowupMessage()">
+                        <option value="reminder">📢 Product Reminder</option>
+                        <option value="discount">🎁 Discount Offer</option>
+                        <option value="newstock">✨ New Stock Alert</option>
+                        <option value="custom">✏️ Custom Message</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="followup-message" rows="6"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('followup-modal')">Cancel</button>
+                <button class="btn btn-success" onclick="sendFollowupMessage()">
+                    <i class="fab fa-whatsapp"></i> Send WhatsApp
+                </button>
             </div>
         </div>
     </div>
 
-
-    <!-- Custom JavaScript -->
     <script src="script.js"></script>
 </body>
-
 </html>
