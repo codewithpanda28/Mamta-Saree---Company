@@ -12,15 +12,15 @@ const CONFIG = {
     N8N_BASE_URL: 'https://n8n.srv1114630.hstgr.cloud/webhook',
     WHATSAPP_API: 'https://thinkaiq.in/api/39620217-6b32-4554-80ea-51c84db06f46/contact/send-message',
     WHATSAPP_TOKEN: 'ruFA4YRHbJ0e5Sw08p4ZPLDkeYhqKUhi8GZZtSvZmYzzXXInxxR539GJ9GJQ0q9K',
-    BUSINESS_PHONE: '9905887725',
+    BUSINESS_PHONE: '8252472186',
     LOW_STOCK_THRESHOLD: 5,
     AUTO_REFRESH_INTERVAL: 120000,
     
     // Sheet Names - EXACT names as in your Google Sheet
     SHEETS: {
-        PRODUCTS: 'Products ',      // Note: space at end
+        PRODUCTS: 'Products',      // Note: space at end
         ORDERS: 'Orders',
-        PAYMENTS: 'Payments ',      // Note: space at end
+        PAYMENTS: 'Payments',      // Note: space at end
         CUSTOMERS: 'Customers',
         LEADS: 'Leads'
     }
@@ -29,7 +29,7 @@ const CONFIG = {
 // API Endpoints
 const API = {
     // n8n endpoints for updates
-    updateOrder: `${CONFIG.N8N_BASE_URL}/mamta-saree/update-order`,
+    updateOrder: `${CONFIG.N8N_BASE_URL}/mamta-saree/orders/update`,
     addTracking: `${CONFIG.N8N_BASE_URL}/mamta-saree/orders/tracking`,
     approvePayment: `${CONFIG.N8N_BASE_URL}/mamta-saree/payments/approve`,
     rejectPayment: `${CONFIG.N8N_BASE_URL}/mamta-saree/payments/reject`,
@@ -196,6 +196,10 @@ async function fetchSheet(sheetName) {
         });
         
         console.log(`✅ ${sheetName}: ${rows.length} rows loaded`);
+        if (sheetName.toLowerCase().includes('product') && rows.length > 0) {
+            console.log('📋 Product Headers:', headers);
+            console.log('📋 Sample Product Data:', rows[0]);
+        }
         return rows;
     } catch (error) {
         console.error(`❌ Error fetching ${sheetName}:`, error);
@@ -283,7 +287,8 @@ async function loadAllData(silent = false) {
             const actualTitle = sheet.properties.title;
             
             if (title.includes('product')) sheetNames.products = actualTitle;
-            else if (title.includes('order')) sheetNames.orders = actualTitle;
+            else if (title === 'orders') sheetNames.orders = actualTitle;
+            
             else if (title.includes('payment')) sheetNames.payments = actualTitle;
             else if (title.includes('customer')) sheetNames.customers = actualTitle;
             else if (title.includes('lead')) sheetNames.leads = actualTitle;
@@ -516,97 +521,29 @@ function renderPendingPaymentsList() {
 // PRODUCTS
 // ==========================================
 
-function renderProducts() {
-    const container = document.getElementById('products-table');
-    if (!container) return;
-    
-    const search = document.getElementById('product-search')?.value.toLowerCase() || '';
-    
-    let products = [...allData.products];
-    
-    if (search) {
-        products = products.filter(p =>
-            (p.Serial_No || '').toLowerCase().includes(search) ||
-            (p.Saree_Name || p.Product_Name || '').toLowerCase().includes(search) ||
-            (p.Color || '').toLowerCase().includes(search) ||
-            (p.Category || '').toLowerCase().includes(search)
-        );
-    }
-    
-    if (products.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-box-open"></i>
-                <h3>No products found</h3>
-                <p>${allData.products.length === 0 ? 'Products sheet mein data check karo' : 'Search filter change karo'}</p>
-                <button class="btn btn-primary" onclick="openProductModal()">
-                    <i class="fas fa-plus"></i> Add Product
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = `
-        <div class="products-grid">
-            ${products.map(p => {
-                const imageUrl = convertDriveLink(p.Image_URL || p.image_url || p.ImageURL || '');
-                const stockQty = parseInt(p.Stock_Qty) || 0;
-                const stockClass = stockQty === 0 ? 'out' : stockQty <= 5 ? 'low' : 'in';
-                const stockLabel = stockQty === 0 ? 'Out of Stock' : stockQty <= 5 ? 'Low Stock' : 'In Stock';
-                
-                return `
-                    <div class="product-card ${stockQty === 0 ? 'out-of-stock' : ''}">
-                        <div class="product-image">
-                            ${imageUrl ? 
-                                `<img src="${imageUrl}" alt="${escapeHtml(p.Saree_Name || p.Product_Name)}" 
-                                    onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-image\\'></i><small>Load Error</small></div>';">` :
-                                `<div class="no-image"><i class="fas fa-image"></i><small>No Image</small></div>`
-                            }
-                            <span class="stock-badge ${stockClass}">${stockLabel}</span>
-                        </div>
-                        <div class="product-info">
-                            <div class="product-header">
-                                <span class="serial">${escapeHtml(p.Serial_No || '-')}</span>
-                            </div>
-                            <h4>${escapeHtml(p.Saree_Name || p.Product_Name || 'Unnamed')}</h4>
-                            <div class="product-meta">
-                                <span><i class="fas fa-palette"></i> ${escapeHtml(p.Color || '-')}</span>
-                                <span><i class="fas fa-boxes"></i> ${stockQty} pcs</span>
-                            </div>
-                            <div class="product-price">₹${formatNumber(p.Price)}</div>
-                        </div>
-                        <div class="product-actions">
-                            <button class="btn btn-sm btn-outline" onclick="openProductModal('${escapeHtml(p.Serial_No)}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteProduct('${escapeHtml(p.Serial_No)}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
-}
-
 function openProductModal(serialNo = null) {
     const isEdit = serialNo !== null;
-    const product = isEdit ? allData.products.find(p => p.Serial_No === serialNo) : {};
+    const product = isEdit ? allData.products.find(p => {
+        const serial = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+        return serial === serialNo;
+    }) : {};
     
     document.getElementById('product-modal-title').innerHTML = `<i class="fas fa-box"></i> ${isEdit ? 'Edit' : 'Add'} Product`;
     document.getElementById('product-edit-serial').value = isEdit ? serialNo : '';
     
-    document.getElementById('product-serial').value = product?.Serial_No || '';
+    document.getElementById('product-serial').value = getField(product, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
     document.getElementById('product-serial').readOnly = isEdit;
-    document.getElementById('product-name').value = product?.Saree_Name || product?.Product_Name || '';
-    document.getElementById('product-category').value = product?.Category || 'Silk';
-    document.getElementById('product-price').value = product?.Price || '';
-    document.getElementById('product-color').value = product?.Color || '';
-    document.getElementById('product-fabric').value = product?.Fabric || '';
-    document.getElementById('product-stock').value = product?.Stock_Qty || '10';
-    document.getElementById('product-image').value = product?.Image_URL || product?.image_url || '';
+    document.getElementById('product-name').value = getField(product, 
+        'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+        'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+        'name', 'item_name'
+    ) || '';
+    document.getElementById('product-category').value = getField(product, 'Category', 'category') || 'Silk';
+    document.getElementById('product-price').value = getField(product, 'Price', 'price') || '';
+    document.getElementById('product-color').value = getField(product, 'Color', 'color') || '';
+    document.getElementById('product-fabric').value = getField(product, 'Fabric', 'fabric') || '';
+    document.getElementById('product-stock').value = getField(product, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty') || '10';
+    document.getElementById('product-image').value = getField(product, 'Image_URL', 'image_url', 'ImageURL', 'Image URL') || '';
     
     const preview = document.getElementById('product-image-preview');
     const imgUrl = convertDriveLink(product?.Image_URL || product?.image_url || '');
@@ -859,7 +796,6 @@ async function updateOrderStatus(orderId) {
     try {
         showLoading(true, 'Updating order...');
         
-        // Prepare data for n8n webhook
         const updateData = {
             Order_ID: orderId,
             Status: newStatus,
@@ -888,7 +824,6 @@ async function updateOrderStatus(orderId) {
             Payment_Status: newStatus === 'Delivered' ? 'Paid' : ''
         };
         
-        // Call n8n webhook
         await postToWebhook(API.updateOrder, updateData);
         
         closeModal('order-modal');
@@ -915,32 +850,37 @@ async function updateOrderStatus(orderId) {
 function renderPayments() {
     const container = document.getElementById('payments-table');
     if (!container) return;
-    
+
     const search = document.getElementById('payment-search')?.value.toLowerCase() || '';
-    
-    let payments = [...allData.payments].sort((a, b) => 
+
+    let payments = [...allData.payments].sort((a, b) =>
         new Date(b.Timestamp || b.Payment_Date) - new Date(a.Timestamp || a.Payment_Date)
     );
-    
+
     if (search) {
         payments = payments.filter(p =>
             (p.Customer_Name || p.Name || '').toLowerCase().includes(search) ||
-            (p.Phone || '').includes(search)
+            (p.Phone || '').includes(search) ||
+            (p.Order_ID || '').toLowerCase().includes(search) ||
+            (p.Product_Name || '').toLowerCase().includes(search)
         );
     }
-    
+
     if (payments.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-credit-card"></i><h3>No payments found</h3></div>';
+        container.innerHTML =
+            '<div class="empty-state"><i class="fas fa-credit-card"></i><h3>No payments found</h3></div>';
         return;
     }
-    
+
     container.innerHTML = `
         <table>
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Order ID</th>
                     <th>Customer</th>
                     <th>Phone</th>
+                    <th>Product</th>
                     <th>Type</th>
                     <th>Total</th>
                     <th>Advance</th>
@@ -952,34 +892,54 @@ function renderPayments() {
             <tbody>
                 ${payments.map(p => {
                     const isPending = !p.Status || p.Status.toLowerCase().includes('pending');
-                    const screenshotUrl = p.Screenshot_URL ? convertDriveLink(p.Screenshot_URL) : null;
-                    
+                    const screenshotUrl = p.Screenshot_URL
+                        ? convertDriveLink(p.Screenshot_URL)
+                        : null;
+
                     return `
                         <tr class="${isPending ? 'pending-row' : ''}">
                             <td>${formatDate(p.Timestamp || p.Payment_Date)}</td>
-                            <td><strong>${escapeHtml(p.Customer_Name || p.Name || '-')}</strong></td>
+                            <td><strong>${escapeHtml(p.Order_ID || '-')}</strong></td>
+                            <td>${escapeHtml(p.Customer_Name || p.Name || '-')}</td>
                             <td><a href="tel:${p.Phone}">${escapeHtml(p.Phone || '-')}</a></td>
+                            <td>${escapeHtml(p.Product_Name || p.Product || '-')}</td>
                             <td>${escapeHtml(p.Payment_Type || '-')}</td>
-                            <td>₹${formatNumber(p.Amount_Expected || p.Amount || p.Total_Amount)}</td>
-                            <td class="text-success">₹${formatNumber(p.Advance_Paid || '0')}</td>
-                            <td class="${parseFloat(p.Balance_Due) > 0 ? 'text-danger' : ''}">₹${formatNumber(p.Balance_Due || '0')}</td>
-                            <td><span class="status-badge ${getStatusClass(p.Status)}">${escapeHtml(p.Status || 'Pending')}</span></td>
+                            <td>₹${formatNumber(p.Amount_Expected || p.Amount || p.Total_Amount || 0)}</td>
+                            <td class="text-success">₹${formatNumber(p.Advance_Paid || 0)}</td>
+                            <td class="${parseFloat(p.Balance_Due) > 0 ? 'text-danger' : ''}">
+                                ₹${formatNumber(p.Balance_Due || 0)}
+                            </td>
+                            <td>
+                                <span class="status-badge ${getStatusClass(p.Status)}">
+                                    ${escapeHtml(p.Status || 'Pending')}
+                                </span>
+                            </td>
                             <td>
                                 <div class="action-btns">
                                     ${isPending ? `
-                                        <button class="btn-icon success" onclick="approvePayment('${escapeHtml(p.Phone)}')" title="Approve">
+                                        <button class="btn-icon success"
+                                            onclick="approvePayment('${escapeHtml(p.Phone)}')"
+                                            title="Approve">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                        <button class="btn-icon danger" onclick="rejectPayment('${escapeHtml(p.Phone)}')" title="Reject">
+                                        <button class="btn-icon danger"
+                                            onclick="rejectPayment('${escapeHtml(p.Phone)}')"
+                                            title="Reject">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     ` : ''}
+
                                     ${screenshotUrl ? `
-                                        <button class="btn-icon" onclick="viewScreenshot('${escapeHtml(screenshotUrl)}')" title="Screenshot">
+                                        <button class="btn-icon"
+                                            onclick="viewScreenshot('${escapeHtml(screenshotUrl)}')"
+                                            title="Screenshot">
                                             <i class="fas fa-image"></i>
                                         </button>
                                     ` : ''}
-                                    <button class="btn-icon whatsapp" onclick="openWhatsApp('${escapeHtml(p.Phone)}')" title="WhatsApp">
+
+                                    <button class="btn-icon whatsapp"
+                                        onclick="openWhatsApp('${escapeHtml(p.Phone)}')"
+                                        title="WhatsApp">
                                         <i class="fab fa-whatsapp"></i>
                                     </button>
                                 </div>
@@ -991,6 +951,7 @@ function renderPayments() {
         </table>
     `;
 }
+
 
 function viewScreenshot(url) {
     if (!url) return;
@@ -1007,38 +968,33 @@ function viewScreenshot(url) {
     document.body.appendChild(modal);
 }
 
+// ✅ APPROVE PAYMENT - Clean Version
+// ===============================
+// APPROVE PAYMENT - WITH TIMESTAMP
+// ===============================
 async function approvePayment(phone) {
-    const payment = allData.payments.find(p => p.Phone === phone);
-    if (!payment) return showToast('Payment not found!', 'error');
+    const payment = allData.payments.find(p => p.Phone === phone && p.Status.includes('Pending'));
+    if (!payment) return showToast('Pending payment not found!', 'error');
     
-    if (!confirm(`${payment.Customer_Name || payment.Name} ka payment APPROVE karna hai?`)) return;
+    if (!confirm(`${payment.Customer_Name} ji ka payment APPROVE karna hai?`)) return;
     
     try {
         showLoading(true, 'Approving...');
         
         await postToWebhook(API.approvePayment, {
             Phone: phone,
-            Status: 'Verified',
-            Verified_At: new Date().toISOString()
+            Timestamp: payment.Timestamp,           // ← YEH LINE ADD KI HAI
+            Customer_Name: payment.Customer_Name,
+            Amount: payment.Advance_Paid || payment.Amount,
+            Serial_No: payment.Serial_No || '',
+            Order_ID: payment.Order_ID || ''
         });
         
-        // Send WhatsApp
-        const message = `✅ *Payment Verified!*
-
-Namaste ${payment.Customer_Name || payment.Name} ji! 🙏
-
-Aapka payment ₹${payment.Advance_Paid || payment.Amount} verify ho gaya!
-
-Order jaldi process hoga.
-
-Dhanyawad! 🙏
-Mamta Saree
-📞 ${CONFIG.BUSINESS_PHONE}`;
-        
-        await sendWhatsAppViaN8N(phone, message);
-        
+        // 3 second wait – sheet update hone ka time
+        await new Promise(resolve => setTimeout(resolve, 3000));
         await loadAllData();
-        showToast('✅ Payment approved!', 'success');
+        
+        showToast('Payment Approved Successfully!', 'success');
     } catch (error) {
         showToast('Error: ' + error.message, 'error');
     } finally {
@@ -1047,44 +1003,48 @@ Mamta Saree
 }
 
 async function rejectPayment(phone) {
-    const payment = allData.payments.find(p => p.Phone === phone);
-    if (!payment) return showToast('Payment not found!', 'error');
+    const payment = allData.payments.find(
+        p => p.Phone === phone && p.Status && p.Status.toLowerCase().includes('pending')
+    );
     
-    const reason = prompt('Rejection reason:') || 'Screenshot clear nahi tha';
-    if (!confirm(`Payment REJECT karna hai? Reason: ${reason}`)) return;
-    
+    if (!payment) {
+        return showToast('Pending payment not found!', 'error');
+    }
+
+    const reason =
+        prompt('Rejection reason:', 'Screenshot clear nahi tha') ||
+        'Screenshot clear nahi tha';
+
+    if (!confirm(`${payment.Customer_Name} ji ka payment REJECT karna hai?\nReason: ${reason}`)) {
+        return;
+    }
+
     try {
         showLoading(true, 'Rejecting...');
-        
+
         await postToWebhook(API.rejectPayment, {
             Phone: phone,
-            Status: 'Rejected',
-            Rejection_Reason: reason
+            Timestamp: payment.Timestamp,            // ✅ SAME AS APPROVE
+            Customer_Name: payment.Customer_Name,
+            Amount: payment.Advance_Paid || payment.Amount,
+            Serial_No: payment.Serial_No || '',
+            Order_ID: payment.Order_ID || '',
+            Rejection_Reason: reason,                 // ✅ EXTRA FIELD
+            Status: 'Rejected'
         });
-        
-        const message = `❌ *Payment Verify Nahi Hua*
 
-Namaste ${payment.Customer_Name || payment.Name} ji,
-
-Payment verify nahi ho paya.
-
-📝 Reason: ${reason}
-
-Sahi screenshot bhejiye ya call karein:
-📞 ${CONFIG.BUSINESS_PHONE}
-
-Mamta Saree`;
-        
-        await sendWhatsAppViaN8N(phone, message);
-        
+        // Sheet update hone ka wait
+        await new Promise(resolve => setTimeout(resolve, 3000));
         await loadAllData();
-        showToast('Payment rejected!', 'warning');
+
+        showToast('Payment Rejected Successfully!', 'warning');
     } catch (error) {
         showToast('Error: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
 }
+
 
 // ==========================================
 // CUSTOMERS
@@ -1639,12 +1599,24 @@ function generateColorFromString(str) {
     return color;
 }
 
+// Helper to get field value with fallbacks
+function getField(obj, ...fields) {
+    for (const field of fields) {
+        if (obj[field] !== undefined && obj[field] !== null && obj[field] !== '') {
+            return obj[field];
+        }
+    }
+    return '';
+}
+
 // Group products by base serial
 function groupProductsByBase(products) {
     const groups = {};
     
     products.forEach(p => {
-        const baseSerial = getBaseSerial(p.Serial_No);
+        // Try multiple field name variations
+        const serialNo = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+        const baseSerial = getBaseSerial(serialNo) || serialNo || 'UNKNOWN';
         
         if (!groups[baseSerial]) {
             groups[baseSerial] = [];
@@ -1654,7 +1626,11 @@ function groupProductsByBase(products) {
     
     // Sort variants by color name
     Object.keys(groups).forEach(key => {
-        groups[key].sort((a, b) => (a.Color || '').localeCompare(b.Color || ''));
+        groups[key].sort((a, b) => {
+            const colorA = getField(a, 'Color', 'color') || '';
+            const colorB = getField(b, 'Color', 'color') || '';
+            return colorA.localeCompare(colorB);
+        });
     });
     
     return groups;
@@ -1664,19 +1640,34 @@ function renderProducts() {
     const container = document.getElementById('products-table');
     if (!container) return;
     
+    console.log('📦 Rendering products, total:', allData.products.length);
+    if (allData.products.length > 0) {
+        console.log('📦 Sample product keys:', Object.keys(allData.products[0]));
+        console.log('📦 Sample product:', allData.products[0]);
+    }
+    
     const search = document.getElementById('product-search')?.value.toLowerCase() || '';
     
     let products = [...allData.products];
     
-    // Search filter
+    // Search filter with field fallbacks
     if (search) {
-        products = products.filter(p =>
-            (p.Serial_No || '').toLowerCase().includes(search) ||
-            (p.Saree_Name || p.Product_Name || '').toLowerCase().includes(search) ||
-            (p.Color || '').toLowerCase().includes(search) ||
-            (p.Category || '').toLowerCase().includes(search) ||
-            (p.Fabric || '').toLowerCase().includes(search)
-        );
+        products = products.filter(p => {
+            const serial = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+            const name = getField(p, 
+                'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+                'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+                'name', 'item_name'
+            ) || '';
+            const color = getField(p, 'Color', 'color') || '';
+            const category = getField(p, 'Category', 'category') || '';
+            const fabric = getField(p, 'Fabric', 'fabric') || '';
+            return serial.toLowerCase().includes(search) ||
+                   name.toLowerCase().includes(search) ||
+                   color.toLowerCase().includes(search) ||
+                   category.toLowerCase().includes(search) ||
+                   fabric.toLowerCase().includes(search);
+        });
     }
     
     // Group by base serial
@@ -1687,7 +1678,7 @@ function renderProducts() {
             <div class="empty-state">
                 <i class="fas fa-box-open"></i>
                 <h3>No products found</h3>
-                <p>${allData.products.length === 0 ? 'Add products to get started' : 'Try different search'}</p>
+                <p>${allData.products.length === 0 ? 'Products sheet mein data check karo' : 'Try different search'}</p>
                 <button class="btn btn-primary" onclick="openProductModal()">
                     <i class="fas fa-plus"></i> Add Product
                 </button>
@@ -1701,17 +1692,56 @@ function renderProducts() {
             ${Object.entries(groupedProducts).map(([baseSerial, variants]) => {
                 const mainProduct = variants[0];
                 const hasMultipleColors = variants.length > 1;
-                const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.Stock_Qty) || 0), 0);
-                const imageUrl = convertDriveLink(mainProduct.Image_URL || mainProduct.image_url || '');
+                
+                // Get fields with fallbacks
+                const serialNo = getField(mainProduct, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || baseSerial || '-';
+                
+                // Try to get product name with many variations
+                let productName = getField(mainProduct, 
+                    'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name', 
+                    'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name', 
+                    'name', 'item_name', 'ProductName', 'SareeName'
+                );
+                
+                // If still not found, log available keys for debugging
+                if (!productName || productName === 'Unnamed') {
+                    console.log('⚠️ Product name not found. Available keys:', Object.keys(mainProduct));
+                    console.log('⚠️ Product data:', mainProduct);
+                    // Try to find any field that might contain the name
+                    for (const key in mainProduct) {
+                        if (key.toLowerCase().includes('name') || key.toLowerCase().includes('product') || key.toLowerCase().includes('saree')) {
+                            const value = mainProduct[key];
+                            if (value && value !== '' && value !== 'Unnamed') {
+                                productName = value;
+                                console.log(`✅ Found product name in field: ${key} = ${value}`);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                productName = productName || 'Unnamed';
+                const price = getField(mainProduct, 'Price', 'price') || '0';
+                const fabric = getField(mainProduct, 'Fabric', 'fabric') || '';
+                const category = getField(mainProduct, 'Category', 'category') || '';
+                const imageUrl = convertDriveLink(
+                    getField(mainProduct, 'Image_URL', 'image_url', 'ImageURL', 'Image URL')
+                );
+                
+                // Calculate total stock
+                const totalStock = variants.reduce((sum, v) => {
+                    const qty = parseInt(getField(v, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
+                    return sum + qty;
+                }, 0);
                 
                 const stockClass = totalStock === 0 ? 'out' : totalStock <= 5 ? 'low' : 'in';
                 const stockLabel = totalStock === 0 ? 'Out of Stock' : totalStock <= 5 ? 'Low Stock' : 'In Stock';
                 
                 return `
                     <div class="product-card ${totalStock === 0 ? 'out-of-stock' : ''}">
-                        <div class="product-image" onclick="openProductGallery('${escapeHtml(baseSerial)}')">
+                        <div class="product-image" ${hasMultipleColors ? `onclick="openProductGallery('${escapeHtml(baseSerial)}')" style="cursor: pointer;"` : ''}>
                             ${imageUrl ? 
-                                `<img src="${imageUrl}" alt="${escapeHtml(mainProduct.Saree_Name)}" 
+                                `<img src="${imageUrl}" alt="${escapeHtml(productName)}" 
                                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'no-image\\'><i class=\\'fas fa-image\\'></i></div>';">` :
                                 `<div class="no-image"><i class="fas fa-image"></i></div>`
                             }
@@ -1719,12 +1749,16 @@ function renderProducts() {
                             <!-- Color Dots -->
                             ${hasMultipleColors ? `
                                 <div class="color-dots">
-                                    ${variants.slice(0, 5).map(v => `
-                                        <span class="color-dot" 
-                                              style="background-color: ${getColorHex(v.Color)}" 
-                                              title="${escapeHtml(v.Color || 'N/A')} - ${v.Stock_Qty || 0} pcs">
-                                        </span>
-                                    `).join('')}
+                                    ${variants.slice(0, 5).map(v => {
+                                        const color = getField(v, 'Color', 'color') || 'N/A';
+                                        const qty = parseInt(getField(v, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
+                                        return `
+                                            <span class="color-dot" 
+                                                  style="background-color: ${getColorHex(color)}" 
+                                                  title="${escapeHtml(color)} - ${qty} pcs">
+                                            </span>
+                                        `;
+                                    }).join('')}
                                     ${variants.length > 5 ? `<span class="color-dot more">+${variants.length - 5}</span>` : ''}
                                 </div>
                             ` : ''}
@@ -1734,29 +1768,41 @@ function renderProducts() {
                         
                         <div class="product-info">
                             <div class="product-header">
-                                <span class="serial">${escapeHtml(baseSerial)}</span>
-                                <span class="variant-badge">${variants.length} ${variants.length > 1 ? 'colors' : 'color'}</span>
+                                <span class="serial">${escapeHtml(serialNo)}</span>
+                                ${hasMultipleColors ? `<span class="variant-badge">${variants.length} colors</span>` : ''}
                             </div>
                             
-                            <h4>${escapeHtml(mainProduct.Saree_Name || mainProduct.Product_Name || 'Unnamed')}</h4>
+                            ${hasMultipleColors && variants.length > 1 ? `
+                                <div style="font-size: 11px; color: var(--gray-500); margin-bottom: 5px;">
+                                    <i class="fas fa-tags"></i> All: ${variants.map(v => {
+                                        const s = getField(v, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+                                        return escapeHtml(s);
+                                    }).join(', ')}
+                                </div>
+                            ` : ''}
+                            
+                            <h4>${escapeHtml(productName)}</h4>
                             
                             <div class="product-meta">
-                                <span><i class="fas fa-layer-group"></i> ${escapeHtml(mainProduct.Fabric || mainProduct.Category || '-')}</span>
+                                <span><i class="fas fa-palette"></i> ${escapeHtml(getField(mainProduct, 'Color', 'color') || '-')}</span>
+                                <span><i class="fas fa-layer-group"></i> ${escapeHtml(fabric || category || '-')}</span>
                                 <span><i class="fas fa-boxes"></i> ${totalStock} pcs total</span>
                             </div>
                             
-                            <div class="product-price">₹${formatNumber(mainProduct.Price)}</div>
+                            <div class="product-price">₹${formatNumber(price)}</div>
                             
                             <!-- Color-wise Stock List -->
                             ${hasMultipleColors ? `
                                 <div class="color-stock-list">
                                     ${variants.map(v => {
-                                        const qty = parseInt(v.Stock_Qty) || 0;
+                                        const color = getField(v, 'Color', 'color') || 'N/A';
+                                        const variantSerial = getField(v, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+                                        const qty = parseInt(getField(v, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
                                         return `
                                             <div class="color-stock-item">
-                                                <span class="color-dot-small" style="background-color: ${getColorHex(v.Color)}"></span>
-                                                <span class="color-name">${escapeHtml(v.Color || 'N/A')}</span>
-                                                <span class="color-code">${escapeHtml(getColorCode(v.Serial_No))}</span>
+                                                <span class="color-dot-small" style="background-color: ${getColorHex(color)}"></span>
+                                                <span class="color-name">${escapeHtml(color)}</span>
+                                                <span class="color-code" title="Serial: ${escapeHtml(variantSerial)}">${escapeHtml(getColorCode(variantSerial) || variantSerial)}</span>
                                                 <span class="stock-qty ${qty === 0 ? 'out' : qty <= 3 ? 'low' : ''}">${qty}</span>
                                             </div>
                                         `;
@@ -1766,10 +1812,10 @@ function renderProducts() {
                         </div>
                         
                         <div class="product-actions">
-                            <button class="btn btn-sm btn-outline" onclick="openProductModal('${escapeHtml(mainProduct.Serial_No)}')">
+                            <button class="btn btn-sm btn-outline" onclick="openProductModal('${escapeHtml(serialNo)}')">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="btn btn-sm btn-success" onclick="openAddColorModal('${escapeHtml(baseSerial)}', '${escapeHtml(mainProduct.Saree_Name || mainProduct.Product_Name)}')">
+                            <button class="btn btn-sm btn-success" onclick="openAddColorModal('${escapeHtml(baseSerial)}', '${escapeHtml(productName)}')">
                                 <i class="fas fa-palette"></i> + Color
                             </button>
                             ${hasMultipleColors ? `
@@ -1777,7 +1823,7 @@ function renderProducts() {
                                     <i class="fas fa-images"></i> All
                                 </button>
                             ` : `
-                                <button class="btn btn-sm btn-danger" onclick="deleteProduct('${escapeHtml(mainProduct.Serial_No)}')">
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct('${escapeHtml(serialNo)}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             `}
@@ -1795,7 +1841,10 @@ function renderProducts() {
 
 function openAddColorModal(baseSerial, productName) {
     // Get existing product details
-    const existingVariants = allData.products.filter(p => getBaseSerial(p.Serial_No) === baseSerial);
+    const existingVariants = allData.products.filter(p => {
+        const serial = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+        return getBaseSerial(serial) === baseSerial;
+    });
     
     if (existingVariants.length === 0) {
         showToast('Product not found!', 'error');
@@ -1803,7 +1852,10 @@ function openAddColorModal(baseSerial, productName) {
     }
     
     const mainProduct = existingVariants[0];
-    const existingColors = existingVariants.map(v => v.Color?.toLowerCase()).filter(Boolean);
+    const existingColors = existingVariants.map(v => {
+        const color = getField(v, 'Color', 'color') || '';
+        return color.toLowerCase();
+    }).filter(Boolean);
     
     // Remove existing modal if any
     document.getElementById('add-color-modal')?.remove();
@@ -1843,7 +1895,7 @@ function openAddColorModal(baseSerial, productName) {
                             </div>
                             <div class="form-group">
                                 <label>Price (₹)</label>
-                                <input type="number" id="new-color-price" value="${mainProduct.Price || ''}" placeholder="Same as main">
+                                <input type="number" id="new-color-price" value="${getField(mainProduct, 'Price', 'price') || ''}" placeholder="Same as main">
                             </div>
                         </div>
                         
@@ -1926,7 +1978,10 @@ async function saveColorVariant(event, baseSerial) {
     }
     
     // Check if color already exists
-    if (existingVariants.find(v => v.Color?.toLowerCase() === color.toLowerCase())) {
+    if (existingVariants.find(v => {
+        const existingColor = getField(v, 'Color', 'color') || '';
+        return existingColor.toLowerCase() === color.toLowerCase();
+    })) {
         return showToast(`${color} color already exists for this product!`, 'error');
     }
     
@@ -1935,11 +1990,15 @@ async function saveColorVariant(event, baseSerial) {
         
         const variantData = {
             Serial_No: newSerialNo,
-            Saree_Name: mainProduct.Saree_Name || mainProduct.Product_Name,
-            Category: mainProduct.Category,
-            Fabric: mainProduct.Fabric,
+            Saree_Name: getField(mainProduct, 
+                'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+                'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+                'name', 'item_name'
+            ) || '',
+            Category: getField(mainProduct, 'Category', 'category') || '',
+            Fabric: getField(mainProduct, 'Fabric', 'fabric') || '',
             Color: color,
-            Price: price || mainProduct.Price,
+            Price: price || getField(mainProduct, 'Price', 'price') || '0',
             Stock_Qty: stock,
             Stock_Status: parseInt(stock) > 0 ? (parseInt(stock) <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock',
             Image_URL: imageUrl,
@@ -1967,7 +2026,10 @@ async function saveColorVariant(event, baseSerial) {
 // ==========================================
 
 function openProductGallery(baseSerial) {
-    const variants = allData.products.filter(p => getBaseSerial(p.Serial_No) === baseSerial);
+    const variants = allData.products.filter(p => {
+        const serial = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+        return getBaseSerial(serial) === baseSerial;
+    });
     
     if (variants.length === 0) {
         showToast('Product not found!', 'error');
@@ -1975,6 +2037,12 @@ function openProductGallery(baseSerial) {
     }
     
     const mainProduct = variants[0];
+    const productName = getField(mainProduct, 
+        'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+        'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+        'name', 'item_name'
+    ) || 'Unnamed';
+    const price = getField(mainProduct, 'Price', 'price') || '0';
     
     // Remove existing modal
     document.getElementById('gallery-modal')?.remove();
@@ -1983,52 +2051,59 @@ function openProductGallery(baseSerial) {
         <div class="modal active" id="gallery-modal">
             <div class="modal-content modal-large">
                 <div class="modal-header">
-                    <h3><i class="fas fa-images"></i> ${escapeHtml(mainProduct.Saree_Name || mainProduct.Product_Name)} - All Colors</h3>
+                    <h3><i class="fas fa-images"></i> ${escapeHtml(productName)} - All Colors</h3>
                     <button class="modal-close" onclick="closeModal('gallery-modal'); document.getElementById('gallery-modal')?.remove();">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="gallery-info">
                         <span><i class="fas fa-tag"></i> Base: ${escapeHtml(baseSerial)}</span>
                         <span><i class="fas fa-palette"></i> ${variants.length} Colors</span>
-                        <span><i class="fas fa-boxes"></i> Total: ${variants.reduce((sum, v) => sum + (parseInt(v.Stock_Qty) || 0), 0)} pcs</span>
-                        <span><i class="fas fa-rupee-sign"></i> ₹${formatNumber(mainProduct.Price)}</span>
+                        <span><i class="fas fa-boxes"></i> Total: ${variants.reduce((sum, v) => {
+                            const qty = parseInt(getField(v, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
+                            return sum + qty;
+                        }, 0)} pcs</span>
+                        <span><i class="fas fa-rupee-sign"></i> ₹${formatNumber(price)}</span>
                     </div>
                     
                     <div class="gallery-grid">
                         ${variants.map(v => {
-                            const imageUrl = convertDriveLink(v.Image_URL || v.image_url || '');
-                            const stock = parseInt(v.Stock_Qty) || 0;
+                            const imageUrl = convertDriveLink(
+                                getField(v, 'Image_URL', 'image_url', 'ImageURL', 'Image URL')
+                            );
+                            const stock = parseInt(getField(v, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
                             const stockClass = stock === 0 ? 'out' : stock <= 5 ? 'low' : 'in';
+                            const color = getField(v, 'Color', 'color') || 'N/A';
+                            const variantSerial = getField(v, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
                             
                             return `
                                 <div class="gallery-item ${stock === 0 ? 'out-of-stock' : ''}">
-                                    <div class="gallery-image" onclick="viewFullImage('${escapeHtml(imageUrl)}', '${escapeHtml(v.Color)}')">
+                                    <div class="gallery-image" onclick="viewFullImage('${escapeHtml(imageUrl)}', '${escapeHtml(color)}')">
                                         ${imageUrl ? 
-                                            `<img src="${imageUrl}" alt="${escapeHtml(v.Color)}" onerror="this.src='https://via.placeholder.com/200?text=No+Image'">` :
+                                            `<img src="${imageUrl}" alt="${escapeHtml(color)}" onerror="this.src='https://via.placeholder.com/200?text=No+Image'">` :
                                             `<div class="no-image"><i class="fas fa-image"></i></div>`
                                         }
                                     </div>
                                     <div class="gallery-info-item">
                                         <div class="gallery-color">
-                                            <span class="color-dot-small" style="background-color: ${getColorHex(v.Color)}"></span>
-                                            <strong>${escapeHtml(v.Color || 'N/A')}</strong>
+                                            <span class="color-dot-small" style="background-color: ${getColorHex(color)}"></span>
+                                            <strong>${escapeHtml(color)}</strong>
                                         </div>
-                                        <div class="gallery-serial">${escapeHtml(v.Serial_No)}</div>
+                                        <div class="gallery-serial">${escapeHtml(variantSerial)}</div>
                                         <div class="gallery-stock ${stockClass}">
                                             <i class="fas fa-boxes"></i> ${stock} pcs
                                         </div>
                                     </div>
                                     <div class="gallery-actions">
-                                        <button class="btn btn-sm btn-outline" onclick="openProductModal('${escapeHtml(v.Serial_No)}')" title="Edit">
+                                        <button class="btn btn-sm btn-outline" onclick="openProductModal('${escapeHtml(variantSerial)}')" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline" onclick="quickStockUpdate('${escapeHtml(v.Serial_No)}', 1)" title="+1 Stock">
+                                        <button class="btn btn-sm btn-outline" onclick="quickStockUpdate('${escapeHtml(variantSerial)}', 1)" title="+1 Stock">
                                             <i class="fas fa-plus"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline" onclick="quickStockUpdate('${escapeHtml(v.Serial_No)}', -1)" title="-1 Stock">
+                                        <button class="btn btn-sm btn-outline" onclick="quickStockUpdate('${escapeHtml(variantSerial)}', -1)" title="-1 Stock">
                                             <i class="fas fa-minus"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteProduct('${escapeHtml(v.Serial_No)}')" title="Delete">
+                                        <button class="btn btn-sm btn-danger" onclick="deleteProduct('${escapeHtml(variantSerial)}')" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -2038,7 +2113,7 @@ function openProductGallery(baseSerial) {
                     </div>
                     
                     <div class="gallery-footer">
-                        <button class="btn btn-success" onclick="closeModal('gallery-modal'); openAddColorModal('${escapeHtml(baseSerial)}', '${escapeHtml(mainProduct.Saree_Name || mainProduct.Product_Name)}')">
+                        <button class="btn btn-success" onclick="closeModal('gallery-modal'); openAddColorModal('${escapeHtml(baseSerial)}', '${escapeHtml(productName)}')">
                             <i class="fas fa-plus"></i> Add New Color
                         </button>
                     </div>
@@ -2070,10 +2145,13 @@ function viewFullImage(url, title) {
 
 // Quick stock update
 async function quickStockUpdate(serialNo, change) {
-    const product = allData.products.find(p => p.Serial_No === serialNo);
+    const product = allData.products.find(p => {
+        const serial = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+        return serial === serialNo;
+    });
     if (!product) return;
     
-    const currentQty = parseInt(product.Stock_Qty) || 0;
+    const currentQty = parseInt(getField(product, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
     const newQty = Math.max(0, currentQty + change);
     
     if (newQty === currentQty) return;
