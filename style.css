@@ -757,7 +757,8 @@ select {
     padding: 20px;
 }
 
-.modal.active { display: flex; }
+.modal.active { display: flex; 
+    }
 
 .modal-content {
     background: var(--white);

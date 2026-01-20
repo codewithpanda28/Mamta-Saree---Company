@@ -164,17 +164,34 @@ function closeModal(modalId) {
 // ==========================================
 
 async function fetchSheet(sheetName) {
-    // Encode sheet name properly (handles spaces)
-    const encodedName = encodeURIComponent(sheetName);
+    // Encode sheet name properly (handles spaces and special characters)
+    // Google Sheets API requires single quotes around sheet names with special chars
+    let encodedName = sheetName;
+    if (sheetName.includes(' ') || sheetName.includes('_') || sheetName.includes('-')) {
+        encodedName = `'${sheetName}'`;
+    }
+    encodedName = encodeURIComponent(encodedName);
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodedName}?key=${CONFIG.API_KEY}`;
     
     try {
-        console.log(`📥 Fetching: ${sheetName}`);
+        console.log(`📥 Fetching: "${sheetName}" (encoded: ${encodedName})`);
+        console.log(`📥 Full URL: ${url.substring(0, 100)}...`);
         const res = await fetch(url);
         const data = await res.json();
         
+        // Debug: Log full response for customers sheet
+        if (sheetName.toLowerCase().includes('customer')) {
+            console.log(`🔍 Customer sheet API response:`, data);
+            console.log(`🔍 data.values length:`, data.values ? data.values.length : 'null');
+            if (data.values && data.values.length > 0) {
+                console.log(`🔍 First row (headers):`, data.values[0]);
+                console.log(`🔍 Total rows:`, data.values.length);
+            }
+        }
+        
         if (data.error) {
             console.error(`❌ Sheet error for "${sheetName}":`, data.error.message);
+            console.error(`❌ Full error:`, data.error);
             // Try without trailing space
             if (sheetName.endsWith(' ')) {
                 console.log(`🔄 Retrying without trailing space...`);
@@ -183,8 +200,16 @@ async function fetchSheet(sheetName) {
             return [];
         }
         
-        if (!data.values || data.values.length < 2) {
-            console.log(`📭 No data in ${sheetName}`);
+        if (!data.values) {
+            console.warn(`⚠️ No values array in response for "${sheetName}"`);
+            return [];
+        }
+        
+        if (data.values.length < 2) {
+            console.warn(`⚠️ Sheet "${sheetName}" has only ${data.values.length} row(s) (need at least header + 1 data row)`);
+            if (data.values.length === 1) {
+                console.log(`📋 Headers found:`, data.values[0]);
+            }
             return [];
         }
         
@@ -195,12 +220,20 @@ async function fetchSheet(sheetName) {
             return obj;
         });
         
-        console.log(`✅ ${sheetName}: ${rows.length} rows loaded`);
-        if (sheetName.toLowerCase().includes('product') && rows.length > 0) {
-            console.log('📋 Product Headers:', headers);
-            console.log('📋 Sample Product Data:', rows[0]);
+        // Filter out completely empty rows
+        const validRows = rows.filter(row => {
+            return Object.values(row).some(val => val && val.toString().trim() !== '');
+        });
+        
+        console.log(`✅ ${sheetName}: ${validRows.length} valid rows loaded (out of ${rows.length} total rows)`);
+        if (validRows.length > 0) {
+            console.log(`📋 ${sheetName} Headers:`, headers);
+            console.log(`📋 ${sheetName} Sample Data:`, validRows[0]);
+        } else if (rows.length > 0) {
+            console.warn(`⚠️ ${sheetName}: All rows appear to be empty`);
+            console.log(`📋 Sample empty row:`, rows[0]);
         }
-        return rows;
+        return validRows;
     } catch (error) {
         console.error(`❌ Error fetching ${sheetName}:`, error);
         return [];
@@ -282,28 +315,82 @@ async function loadAllData(silent = false) {
         
         // Get actual sheet names
         const sheetNames = {};
+        const allSheetTitles = metaData.sheets?.map(s => s.properties.title) || [];
+        
         metaData.sheets?.forEach(sheet => {
             const title = sheet.properties.title.toLowerCase().trim();
             const actualTitle = sheet.properties.title;
             
             if (title.includes('product')) sheetNames.products = actualTitle;
-            else if (title === 'orders') sheetNames.orders = actualTitle;
-            
+            else if (title === 'orders' || title.includes('order')) sheetNames.orders = actualTitle;
             else if (title.includes('payment')) sheetNames.payments = actualTitle;
             else if (title.includes('customer')) sheetNames.customers = actualTitle;
             else if (title.includes('lead')) sheetNames.leads = actualTitle;
         });
         
+        // Fallback: Try exact match for common sheet names
+        if (!sheetNames.customers) {
+            const exactMatch = allSheetTitles.find(t => t.toLowerCase() === 'customers');
+            if (exactMatch) sheetNames.customers = exactMatch;
+        }
+        
         console.log('📋 Found sheets:', sheetNames);
+        console.log('📋 All available sheets:', allSheetTitles);
         
         // Fetch all sheets in parallel
-        const [products, orders, payments, customers, leads] = await Promise.all([
+        let [products, orders, payments, customers, leads] = await Promise.all([
             sheetNames.products ? fetchSheet(sheetNames.products) : Promise.resolve([]),
             sheetNames.orders ? fetchSheet(sheetNames.orders) : Promise.resolve([]),
             sheetNames.payments ? fetchSheet(sheetNames.payments) : Promise.resolve([]),
             sheetNames.customers ? fetchSheet(sheetNames.customers) : Promise.resolve([]),
             sheetNames.leads ? fetchSheet(sheetNames.leads) : Promise.resolve([])
         ]);
+        
+        // Debug customers specifically
+        if (sheetNames.customers) {
+            console.log('👥 Customers sheet name:', sheetNames.customers);
+            console.log('👥 Customers data loaded:', customers.length, 'rows');
+            if (customers.length === 0) {
+                // Try fetching by GID if name fetch failed
+                const customerSheet = metaData.sheets?.find(s => 
+                    s.properties.title.toLowerCase().includes('customer')
+                );
+                if (customerSheet) {
+                    console.log('🔄 Customers sheet found by GID:', customerSheet.properties.sheetId);
+                    console.log('🔄 Actual sheet title:', customerSheet.properties.title);
+                    // Try fetching again with exact title
+                    const retryFetch = await fetchSheet(customerSheet.properties.title);
+                    if (retryFetch.length > 0) {
+                        console.log('✅ Retry fetch successful! Got', retryFetch.length, 'customers');
+                        customers = retryFetch;
+                    }
+                }
+            }
+            if (customers.length > 0) {
+                console.log('👥 ✅ Customers loaded successfully!');
+                console.log('👥 First customer raw data:', customers[0]);
+            }
+        } else {
+            console.warn('⚠️ Customers sheet not found! Available sheets:', allSheetTitles);
+            // Try common customer sheet names
+            const commonNames = ['Customers', 'Customer_Memory', 'Customer Memory', 'customer'];
+            for (const name of commonNames) {
+                const found = allSheetTitles.find(t => t.toLowerCase() === name.toLowerCase());
+                if (found) {
+                    console.log(`💡 Trying alternative sheet name: "${found}"`);
+                    try {
+                        const altFetch = await fetchSheet(found);
+                        if (altFetch.length > 0) {
+                            console.log(`✅ Found customers in "${found}"! Got ${altFetch.length} rows`);
+                            customers = altFetch;
+                            break;
+                        }
+                    } catch (err) {
+                        console.error(`❌ Failed to fetch "${found}":`, err);
+                    }
+                }
+            }
+        }
         
         allData.products = products;
         allData.orders = orders;
@@ -318,6 +405,46 @@ async function loadAllData(silent = false) {
             customers: customers.length,
             leads: leads.length
         });
+        
+        // Debug: Log sample customer data
+        if (customers.length > 0) {
+            console.log('👥 ✅ Customers loaded successfully!');
+            console.log('👥 Total customers:', customers.length);
+            console.log('👥 Sample customer:', customers[0]);
+            console.log('👥 Customer keys:', Object.keys(customers[0]));
+            console.log('👥 Customer data structure:', JSON.stringify(customers[0], null, 2));
+        } else {
+            console.warn('⚠️ No customers loaded from Customers sheet!');
+            // Always try to derive customers from orders as backup
+            if (orders.length > 0) {
+                console.log('💡 Deriving customers from orders...');
+                const uniqueCustomers = {};
+                orders.forEach(order => {
+                    const phone = (order.Phone || '').toString().trim();
+                    if (phone && phone.length >= 10) {
+                        // Normalize phone number (remove spaces, dashes, etc.)
+                        const normalizedPhone = phone.replace(/[^0-9]/g, '');
+                        if (normalizedPhone.length >= 10 && !uniqueCustomers[normalizedPhone]) {
+                            uniqueCustomers[normalizedPhone] = {
+                                Customer_Name: getField(order, 'Customer_Name', 'Name', 'Customer Name', 'customer_name', 'name') || 'Unknown Customer',
+                                Phone: phone,
+                                Email: getField(order, 'Email', 'email') || '',
+                                Address: getField(order, 'Delivery_Address', 'Address', 'Delivery Address', 'address', 'delivery_address') || ''
+                            };
+                        }
+                    }
+                });
+                if (Object.keys(uniqueCustomers).length > 0) {
+                    allData.customers = Object.values(uniqueCustomers);
+                    console.log(`✅ Derived ${allData.customers.length} customers from orders`);
+                    console.log('👥 Sample derived customer:', allData.customers[0]);
+                } else {
+                    console.warn('⚠️ Could not derive customers from orders either');
+                }
+            } else {
+                console.warn('⚠️ No orders available to derive customers from');
+            }
+        }
         
         renderAll();
         if (!silent) showToast('✅ Data loaded!', 'success');
@@ -792,6 +919,7 @@ async function updateOrderStatus(orderId) {
     const previousStatus = order.Status;
     const statusChanged = newStatus !== previousStatus;
     const trackingAdded = trackingId && !order.Tracking_ID;
+    const trackingUpdated = trackingId && order.Tracking_ID && trackingId !== order.Tracking_ID;
     
     try {
         showLoading(true, 'Updating order...');
@@ -826,10 +954,91 @@ async function updateOrderStatus(orderId) {
         
         await postToWebhook(API.updateOrder, updateData);
         
+        // Send WhatsApp message directly if customer notification is enabled
+        if (notifyCustomer && order.Phone && (statusChanged || trackingAdded || trackingUpdated)) {
+            let whatsappMessage = '';
+            const customerName = order.Customer_Name || 'Customer';
+            const productName = order.Product_Name || order.Serial_No || 'Product';
+            
+            // Build message based on what changed
+            if (statusChanged && (trackingAdded || trackingUpdated)) {
+                // Both status and tracking changed
+                whatsappMessage = `Namaste ${customerName} ji! 🙏\n\n`;
+                whatsappMessage += `Aapka order #${orderId} ka status update ho gaya hai:\n`;
+                whatsappMessage += `📦 Status: *${newStatus}*\n\n`;
+                
+                if (trackingId) {
+                    whatsappMessage += `📮 Tracking Details:\n`;
+                    whatsappMessage += `Tracking ID: *${trackingId}*\n`;
+                    if (courier) {
+                        whatsappMessage += `Courier: ${courier}\n`;
+                    }
+                    if (trackingUrl) {
+                        whatsappMessage += `Track here: ${trackingUrl}\n`;
+                    }
+                    whatsappMessage += `\n`;
+                }
+                
+                whatsappMessage += `Product: ${productName}\n`;
+                whatsappMessage += `Amount: ₹${formatNumber(order.Amount)}\n\n`;
+                whatsappMessage += `Dhanyawad! 🙏\nMamta Saree`;
+                
+            } else if (statusChanged) {
+                // Only status changed
+                const statusMessages = {
+                    'Confirmed': 'Aapka order confirm ho gaya hai! 🎉',
+                    'Shipped': 'Aapka order ship ho gaya hai! 📦',
+                    'Out for Delivery': 'Aapka order delivery ke liye ready hai! 🚚',
+                    'Delivered': 'Aapka order deliver ho gaya hai! ✅',
+                    'Cancelled': 'Aapka order cancel ho gaya hai. Koi problem ho toh contact karein.'
+                };
+                
+                whatsappMessage = `Namaste ${customerName} ji! 🙏\n\n`;
+                whatsappMessage += `${statusMessages[newStatus] || `Aapka order status update: ${newStatus}`}\n\n`;
+                whatsappMessage += `Order ID: #${orderId}\n`;
+                whatsappMessage += `Product: ${productName}\n`;
+                whatsappMessage += `Amount: ₹${formatNumber(order.Amount)}\n\n`;
+                whatsappMessage += `Dhanyawad! 🙏\nMamta Saree`;
+                
+            } else if (trackingAdded || trackingUpdated) {
+                // Only tracking added/updated
+                whatsappMessage = `Namaste ${customerName} ji! 🙏\n\n`;
+                whatsappMessage += `Aapka order #${orderId} ka tracking details:\n\n`;
+                
+                if (trackingId) {
+                    whatsappMessage += `📮 Tracking ID: *${trackingId}*\n`;
+                    if (courier) {
+                        whatsappMessage += `Courier: ${courier}\n`;
+                    }
+                    if (trackingUrl) {
+                        whatsappMessage += `\nTrack your order here:\n${trackingUrl}\n`;
+                    } else {
+                        whatsappMessage += `\nTracking link jald hi share karenge.\n`;
+                    }
+                }
+                
+                whatsappMessage += `\nProduct: ${productName}\n`;
+                whatsappMessage += `Amount: ₹${formatNumber(order.Amount)}\n\n`;
+                whatsappMessage += `Dhanyawad! 🙏\nMamta Saree`;
+            }
+            
+            // Send WhatsApp message
+            if (whatsappMessage) {
+                try {
+                    await sendWhatsAppViaN8N(order.Phone, whatsappMessage, customerName);
+                    console.log('✅ WhatsApp sent to customer:', order.Phone);
+                } catch (whatsappError) {
+                    console.error('WhatsApp send error:', whatsappError);
+                    // Don't fail the whole update if WhatsApp fails
+                    showToast('⚠️ Order updated but WhatsApp failed', 'warning');
+                }
+            }
+        }
+        
         closeModal('order-modal');
         await loadAllData();
         
-        if (notifyCustomer && (statusChanged || trackingAdded)) {
+        if (notifyCustomer && (statusChanged || trackingAdded || trackingUpdated)) {
             showToast('✅ Order updated & customer ko WhatsApp bheja!', 'success');
         } else {
             showToast('✅ Order updated!', 'success');
@@ -1054,19 +1263,65 @@ function renderCustomers() {
     const container = document.getElementById('customers-table');
     if (!container) return;
     
+    console.log('👥 Rendering customers, total:', allData.customers.length);
+    if (allData.customers.length > 0) {
+        console.log('👥 ✅ Customers found for rendering!');
+        console.log('👥 Sample customer:', allData.customers[0]);
+        console.log('👥 Customer keys:', Object.keys(allData.customers[0]));
+        console.log('👥 Full customer data:', JSON.stringify(allData.customers.slice(0, 2), null, 2));
+    } else {
+        console.warn('⚠️ No customers to render!');
+        // Try to reload customers from orders one more time
+        if (allData.orders.length > 0) {
+            console.log('💡 Last attempt: Deriving customers from orders...');
+            const uniqueCustomers = {};
+            allData.orders.forEach(order => {
+                const phone = (order.Phone || '').toString().trim();
+                if (phone && phone.length >= 10) {
+                    const normalizedPhone = phone.replace(/[^0-9]/g, '');
+                    if (normalizedPhone.length >= 10 && !uniqueCustomers[normalizedPhone]) {
+                        uniqueCustomers[normalizedPhone] = {
+                            Customer_Name: getField(order, 'Customer_Name', 'Name', 'Customer Name', 'customer_name', 'name') || 'Unknown Customer',
+                            Phone: phone,
+                            Email: getField(order, 'Email', 'email') || '',
+                            Address: getField(order, 'Delivery_Address', 'Address', 'Delivery Address', 'address', 'delivery_address') || ''
+                        };
+                    }
+                }
+            });
+            if (Object.keys(uniqueCustomers).length > 0) {
+                allData.customers = Object.values(uniqueCustomers);
+                console.log(`✅ Derived ${allData.customers.length} customers from orders`);
+            }
+        }
+    }
+    
     const search = document.getElementById('customer-search')?.value.toLowerCase() || '';
     
     let customers = [...allData.customers];
     
     if (search) {
-        customers = customers.filter(c =>
-            (c.Customer_Name || c.Name || '').toLowerCase().includes(search) ||
-            (c.Phone || '').includes(search)
-        );
+        customers = customers.filter(c => {
+            // Try Name field first (as it's in Customers sheet), then Customer_Name
+            const name = getField(c, 'Name', 'Customer_Name', 'Customer Name', 'customer_name', 'name', 'First_Contact', 'First Contact') || '';
+            const phone = (c.Phone || '').toString();
+            return name.toLowerCase().includes(search) || phone.includes(search);
+        });
     }
     
     if (customers.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>No customers found</h3></div>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>No customers found</h3>
+                <p>${allData.customers.length === 0 ? 
+                    'Customers sheet mein data check karo. Agar Customers sheet empty hai, toh customers orders se automatically derive ho jayenge.' : 
+                    'Try different search'}</p>
+                ${allData.orders.length > 0 ? `<p style="margin-top: 10px; color: var(--gray-500); font-size: 14px;">
+                    <i class="fas fa-info-circle"></i> ${allData.orders.length} orders found. Customers should be derived from orders.
+                </p>` : ''}
+            </div>
+        `;
         return;
     }
     
@@ -1084,25 +1339,36 @@ function renderCustomers() {
             </thead>
             <tbody>
                 ${customers.map(c => {
-                    const orderCount = allData.orders.filter(o => 
-                        o.Phone?.replace(/[^0-9]/g, '') === c.Phone?.replace(/[^0-9]/g, '')
-                    ).length;
+                    // Try multiple field name variations - prioritize Name from Customers sheet
+                    const customerName = getField(c, 'Name', 'Customer_Name', 'Customer Name', 'customer_name', 'name', 'First_Contact', 'First Contact') || 'Unknown Customer';
+                    const phone = (c.Phone || '').toString().trim() || '-';
+                    const email = getField(c, 'Email', 'email') || '-';
+                    const address = getField(c, 'Address', 'Delivery_Address', 'Delivery Address', 'address', 'delivery_address') || '-';
+                    
+                    // Count orders by matching phone numbers (normalized)
+                    const customerPhoneNormalized = phone.replace(/[^0-9]/g, '');
+                    const orderCount = allData.orders.filter(o => {
+                        const orderPhone = (o.Phone || '').toString().replace(/[^0-9]/g, '');
+                        return orderPhone && customerPhoneNormalized && orderPhone === customerPhoneNormalized;
+                    }).length;
                     
                     return `
                         <tr>
-                            <td><strong>${escapeHtml(c.Customer_Name || c.Name || '-')}</strong></td>
-                            <td><a href="tel:${c.Phone}">${escapeHtml(c.Phone || '-')}</a></td>
-                            <td>${escapeHtml(c.Email || '-')}</td>
-                            <td>${escapeHtml((c.Address || c.Delivery_Address || '-').substring(0, 30))}</td>
+                            <td><strong>${escapeHtml(customerName)}</strong></td>
+                            <td><a href="tel:${phone}">${escapeHtml(phone)}</a></td>
+                            <td>${escapeHtml(email)}</td>
+                            <td>${escapeHtml(address.substring(0, 30))}${address.length > 30 ? '...' : ''}</td>
                             <td><span class="status-badge">${orderCount}</span></td>
                             <td>
                                 <div class="action-btns">
-                                    <button class="btn-icon whatsapp" onclick="openWhatsApp('${escapeHtml(c.Phone)}')" title="WhatsApp">
-                                        <i class="fab fa-whatsapp"></i>
-                                    </button>
-                                    <button class="btn-icon" onclick="window.location.href='tel:${escapeHtml(c.Phone)}'" title="Call">
-                                        <i class="fas fa-phone"></i>
-                                    </button>
+                                    ${phone !== '-' ? `
+                                        <button class="btn-icon whatsapp" onclick="openWhatsApp('${escapeHtml(phone)}')" title="WhatsApp">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </button>
+                                        <button class="btn-icon" onclick="window.location.href='tel:${escapeHtml(phone)}'" title="Call">
+                                            <i class="fas fa-phone"></i>
+                                        </button>
+                                    ` : ''}
                                 </div>
                             </td>
                         </tr>
@@ -2525,7 +2791,7 @@ function checkNotifications() {
     
     // 1. Low Stock Products (1-5 items)
     const lowStockProducts = allData.products.filter(p => {
-        const qty = parseInt(p.Stock_Qty) || 0;
+        const qty = parseInt(getField(p, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
         return qty > 0 && qty <= 5;
     });
     
@@ -2535,13 +2801,42 @@ function checkNotifications() {
             icon: 'fa-box',
             title: 'Low Stock Alert',
             message: `${lowStockProducts.length} product${lowStockProducts.length > 1 ? 's' : ''} running low on stock`,
-            items: lowStockProducts.slice(0, 3).map(p => `${p.Saree_Name || p.Serial_No}: Only ${p.Stock_Qty} left`)
+            items: lowStockProducts.slice(0, 3).map(p => {
+                // Try multiple field name variations for product name
+                let name = getField(p, 
+                    'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+                    'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+                    'name', 'item_name', 'ProductName', 'SareeName'
+                );
+                
+                // If still not found, try Serial No
+                if (!name || name === 'Unnamed' || name.trim() === '') {
+                    name = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+                }
+                
+                // Last resort: check all keys for anything that might be a name
+                if (!name || name.trim() === '') {
+                    for (const key in p) {
+                        const value = p[key];
+                        if (value && typeof value === 'string' && value.length > 0 && 
+                            (key.toLowerCase().includes('name') || key.toLowerCase().includes('product') || key.toLowerCase().includes('saree'))) {
+                            name = value;
+                            break;
+                        }
+                    }
+                }
+                
+                const qty = getField(p, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty') || '0';
+                const displayName = name || ('Product (Serial: ' + (getField(p, 'Serial_No', 'Serial No') || 'N/A') + ')');
+                return `${displayName}: Only ${qty} left`;
+            })
         });
     }
     
-    // 2. Out of Stock Products
+    // 2. Out of Stock Products - Only show if stock is actually 0
     const outOfStockProducts = allData.products.filter(p => {
-        const qty = parseInt(p.Stock_Qty) || 0;
+        const qty = parseInt(getField(p, 'Stock_Qty', 'Stock Qty', 'stock_qty', 'StockQty')) || 0;
+        // Only count as out of stock if qty is explicitly 0 (not empty/null/undefined)
         return qty === 0;
     });
     
@@ -2551,7 +2846,33 @@ function checkNotifications() {
             icon: 'fa-exclamation-triangle',
             title: 'Out of Stock!',
             message: `${outOfStockProducts.length} product${outOfStockProducts.length > 1 ? 's are' : ' is'} out of stock`,
-            items: outOfStockProducts.slice(0, 3).map(p => p.Saree_Name || p.Serial_No)
+            items: outOfStockProducts.slice(0, 3).map(p => {
+                // Try multiple field name variations for product name
+                let name = getField(p, 
+                    'Saree_Name', 'Product_Name', 'Name', 'Product Name', 'Saree Name',
+                    'Item_Name', 'Item Name', 'Product', 'saree_name', 'product_name',
+                    'name', 'item_name', 'ProductName', 'SareeName'
+                );
+                
+                // If still not found, try Serial No
+                if (!name || name === 'Unnamed' || name.trim() === '') {
+                    name = getField(p, 'Serial_No', 'Serial No', 'serial_no', 'SerialNo') || '';
+                }
+                
+                // Last resort: check all keys for anything that might be a name
+                if (!name || name.trim() === '') {
+                    for (const key in p) {
+                        const value = p[key];
+                        if (value && typeof value === 'string' && value.length > 0 && 
+                            (key.toLowerCase().includes('name') || key.toLowerCase().includes('product') || key.toLowerCase().includes('saree'))) {
+                            name = value;
+                            break;
+                        }
+                    }
+                }
+                
+                return name || 'Product (Serial: ' + (getField(p, 'Serial_No', 'Serial No') || 'N/A') + ')';
+            })
         });
     }
     
@@ -2602,7 +2923,11 @@ function checkNotifications() {
             icon: 'fa-credit-card',
             title: 'Pending Payments',
             message: `${pendingPaymentsToVerify.length} payment${pendingPaymentsToVerify.length > 1 ? 's' : ''} need verification`,
-            items: pendingPaymentsToVerify.slice(0, 3).map(p => `${p.Customer_Name || p.Name}: ₹${p.Advance_Paid || p.Amount}`)
+            items: pendingPaymentsToVerify.slice(0, 3).map(p => {
+                const customerName = getField(p, 'Customer_Name', 'Name', 'Customer Name', 'customer_name', 'name') || 'Customer';
+                const amount = getField(p, 'Advance_Paid', 'Amount', 'advance_paid', 'amount', 'Total_Amount', 'Total Amount') || '0';
+                return `${customerName}: ₹${formatNumber(amount)}`;
+            })
         });
     }
     
